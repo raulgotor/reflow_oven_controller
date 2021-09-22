@@ -1,6 +1,6 @@
 /*!
  *******************************************************************************
- * @file state_machine_states_idle.h
+ * @file reflow_profile.h
  *
  * @brief 
  *
@@ -13,14 +13,20 @@
  *******************************************************************************
  */
 
-#ifndef STATE_MACHINE_STATES_IDLE_H
-#define STATE_MACHINE_STATES_IDLE_H
+
+#ifndef REFLOW_PROFILE_H
+#define REFLOW_PROFILE_H
 
 /*
  *******************************************************************************
  * Public Macros                                                               *
  *******************************************************************************
  */
+
+#define REFLOW_PROFILE_PREHEAT_TEMPERATURE_MIN          50
+#define REFLOW_PROFILE_SOAK_TIME_MIN                    10
+#define REFLOW_PROFILE_REFLOW_TEMPERATURE_MIN           70
+#define REFLOW_PROFILE_REFLOW_TIME_MIN                  10
 
 
 /*
@@ -29,12 +35,21 @@
  *******************************************************************************
  */
 
+typedef struct {
+        char * name;
+        uint16_t preheat_temperature;
+        uint16_t soak_time;
+        uint16_t reflow_temperature;
+        uint16_t dwell_time;
+        uint16_t cooling_time;
+        uint16_t ramp_speed;
+} reflow_profile_t;
+
 /*
  *******************************************************************************
  * Public Constants                                                            *
  *******************************************************************************
  */
-
 
 /*
  *******************************************************************************
@@ -42,6 +57,12 @@
  *******************************************************************************
  */
 
-void state_machine_states_set_entry_point_state(void);
+bool reflow_profile_save(reflow_profile_t const * const p_reflow_profile);
 
-#endif //STATE_MACHINE_STATES_IDLE_H
+bool reflow_profile_load(reflow_profile_t * const p_reflow_profile);
+
+bool reflow_profile_use(reflow_profile_t const * const p_reflow_profile);
+
+bool reflow_profile_get_current(reflow_profile_t * const p_reflow_profile);
+
+#endif //REFLOW_PROFILE_H

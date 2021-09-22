@@ -41,6 +41,7 @@
  *******************************************************************************
  */
 
+
 /*
  *******************************************************************************
  * Constants                                                                   *
@@ -59,7 +60,11 @@
  *******************************************************************************
  */
 
+state_machine_state_text_t m_state_machine_state = STATE_MACHINE_STATE_COUNT;
+
 QueueHandle_t m_state_machine_event_q = NULL;
+
+static TaskHandle_t m_state_machine_task_h = NULL;
 
 /*
  *******************************************************************************
@@ -83,18 +88,19 @@ bool state_machine_init(void) {
         if (success) {
                 result = xTaskCreate(state_machine_task,
                                      "state_machine_task",
-                                     configMINIMAL_STACK_SIZE,
+                                     configMINIMAL_STACK_SIZE * 3,
                                      NULL,
-                                     1,
-                                     NULL);
+                                     10,
+                                     &m_state_machine_task_h);
 
-                if (pdPASS != result) {
+                if ((pdPASS != result) || (NULL == m_state_machine_task_h)) {
                         success = false;
                 }
         }
 
         if (success) {
-                m_state_machine_event_q = xQueueCreate(10U, sizeof(int));
+                m_state_machine_event_q = xQueueCreate(
+                                          10U, sizeof(state_machine_event_t *));
 
                 if (NULL == m_state_machine_event_q) {
                         success = false;
@@ -102,34 +108,53 @@ bool state_machine_init(void) {
         }
 
         if (success) {
-                state_machine_set_state(state_machine_state_idle);
+                state_machine_states_set_entry_point_state();
         }
+
         if (success) {
                 m_is_initialized = true;
+                xTaskNotify(m_state_machine_task_h, 0, eNoAction);
         }
 
         return success;
 
 }
 
+bool state_machine_get_state(state_machine_state_text_t * const p_state)
+{
+        bool success = (NULL != p_state);
+
+        if (success) {
+                *p_state = m_state_machine_state;
+        }
+
+        return success;
+}
+
 bool state_machine_wait_for_event(uint32_t const time_ms,
-                                  state_machine_event_t ** const pp_event)
+                                  state_machine_event_t * const p_event)
 {
         BaseType_t result = pdPASS;
         bool success = true;
+        state_machine_event_t * p_event_buffer = NULL;
 
-        if ((NULL == pp_event) && (NULL == m_state_machine_event_q)) {
+        if ((NULL == p_event) || (NULL == m_state_machine_event_q)) {
                 success = false;
         }
 
         if (success) {
                 result = xQueueReceive(m_state_machine_event_q,
-                                       (void *)pp_event,
+                                       (void *)p_event_buffer,
                                        time_ms);
+
+                success = ((pdPASS == result) && (NULL != p_event_buffer));
         }
 
         if (success) {
-                success = (pdPASS == result);
+                *p_event = *p_event_buffer;
+
+                vPortFree(p_event_buffer);
+                p_event_buffer = NULL;
         }
 
         return success;
@@ -139,7 +164,7 @@ bool state_machine_send_event(state_machine_event_type_t const type,
                               state_machine_data_t const data,
                               uint32_t const timeout)
 {
-        size_t const event_size = sizeof(state_machine_event_t *);
+        size_t const event_size = sizeof(state_machine_event_t);
         state_machine_event_t * p_event = NULL;
         BaseType_t result = pdPASS;
         bool success = true;
@@ -159,7 +184,7 @@ bool state_machine_send_event(state_machine_event_type_t const type,
 
                 switch (p_event->type) {
                 case STATE_MACHINE_EVENT_TYPE_ACTION:
-                        p_event->data.action = data.action;
+                        p_event->data.user_action = data.user_action;
                         break;
                 case STATE_MACHINE_EVENT_TYPE_MESSAGE:
                         p_event->data.message = data.message;
@@ -172,7 +197,7 @@ bool state_machine_send_event(state_machine_event_type_t const type,
         }
 
         if (success) {
-                result = xQueueSend(m_state_machine_event_q, p_event, timeout);
+                result = xQueueSend(m_state_machine_event_q, &p_event, timeout);
                 success = (pdPASS == result);
         }
 

@@ -1,0 +1,28 @@
+@startuml
+scale 1000 width
+[*] -> Idle
+
+
+Idle -d-> Preheat : NEXT_STEP
+Preheat -r-> Soak : PREHEAT_TEMP_REACHED
+Soak -r-> Reflow : SOAK_TIME_REACHED
+Reflow -r-> Dwell : REFLOW_TEMP_REACHED
+Dwell -u-> SlowCooling : DWELL_TIME_REACHED
+
+SlowCooling -u-> Idle : NEXT_STEP
+
+SlowCooling: Temp. controlled
+
+Preheat -u[#red,dotted]-> SlowCooling : ABORT
+Soak -u[#red,dotted]-> SlowCooling: ABORT
+Reflow -u[#red,dotted]-> SlowCooling: ABORT
+
+error -> Idle : CLEAR_ERROR
+Preheat -[#red,dashed]--> error
+Soak -[#red,dashed]--> error
+Reflow -[#red,dashed]--> error
+
+Preheat: Reaching preheat temperature
+Soak: Mantain current temperature
+
+@enduml

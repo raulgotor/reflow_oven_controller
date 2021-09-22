@@ -1,45 +1,129 @@
-/* SPI Master example
+/*!
+ *******************************************************************************
+ * @file state_machine_states.c
+ *
+ * @brief
+ *
+ * @author Raúl Gotor (raulgotor@gmail.com)
+ * @date 18.09.21
+ *
+ * @par
+ * COPYRIGHT NOTICE: (c) 2021 Raúl Gotor
+ * All rights reserved.
+ *******************************************************************************
+ */
 
-   This example code is in the Public Domain (or CC0 licensed, at your option.)
+/*
+ *******************************************************************************
+ * #include Statements                                                         *
+ *******************************************************************************
+ */
 
-   Unless required by applicable law or agreed to in writing, this
-   software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY KIND, either express or implied.
-*/
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include "esp_system.h"
+#include "esp_freertos_hooks.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "esp_system.h"
-#include "driver/gpio.h"
 #include "lvgl/lvgl.h"
-
-#include "reflowOven.h"
-
-#include "esp_freertos_hooks.h"
-
+#include "driver/gpio.h"
 #include "nvs.h"
 #include "nvs_flash.h"
 #include "disp_spi.h"
 #include "ili9341.h"
-
-#define ENABLE_TOUCH_INPUT 1
-#if ENABLE_TOUCH_INPUT
-
 #include "tp_spi.h"
 #include "xpt2046.h"
 
+#include "gui.h"
 #include "state_machine/state_machine.h"
 
-#endif
+/*
+ *******************************************************************************
+ * Private Macros                                                              *
+ *******************************************************************************
+ */
+
+
+/*
+ *******************************************************************************
+ * Data types                                                                  *
+ *******************************************************************************
+ */
+
+/*
+ *******************************************************************************
+ * Constants                                                                   *
+ *******************************************************************************
+ */
+
+/*
+ *******************************************************************************
+ * Private Function Prototypes                                                 *
+ *******************************************************************************
+ */
 
 static void IRAM_ATTR lv_tick_task(void);
 
-void nvs_init();
+static void nvs_init();
 
-void nvs_init()
+static void hardware_init(void);
+
+static bool display_init(void);
+
+/*
+ *******************************************************************************
+ * Public Data Declarations                                                    *
+ *******************************************************************************
+ */
+
+/*
+ *******************************************************************************
+ * Static Data Declarations                                                    *
+ *******************************************************************************
+ */
+
+static lv_color_t buf1[DISP_BUF_SIZE];
+static lv_color_t buf2[DISP_BUF_SIZE];
+static lv_disp_buf_t display_buffer;
+
+
+/*
+ *******************************************************************************
+ * Public Function Bodies                                                      *
+ *******************************************************************************
+ */
+
+void app_main()
+{
+        hardware_init();
+
+        (void)display_init();
+
+        // nvs_init();
+
+        state_machine_init();
+
+        ui_init();
+
+        //mosfet_init();
+
+        //thermocouple_init();
+
+        while (1) {
+                vTaskDelay(1);
+                lv_task_handler();
+        }
+}
+
+/*
+ *******************************************************************************
+ * Private Function Bodies                                                     *
+ *******************************************************************************
+ */
+
+static void nvs_init()
 {
 
         esp_err_t err = nvs_flash_init();
@@ -53,73 +137,58 @@ void nvs_init()
 
 }
 
-esp_err_t save_profile(void)
+static void hardware_init(void)
 {
-        nvs_handle_t my_handle;
-        esp_err_t err;
-
-        err = nvs_open("storage", NVS_READWRITE, &my_handle);
-        if (err != ESP_OK) { return err; }
-
-        size_t required_size = sizeof(ReflowProfile);
-        err = nvs_get_blob(my_handle, "profile", NULL, &required_size);
-        if (err != ESP_OK && err != ESP_ERR_NVS_NOT_FOUND) { return err; }
-
-        err = nvs_set_blob(my_handle, "profile", &my_profile, required_size);
-        if (err != ESP_OK) { return err; }
-        err = nvs_commit(my_handle);
-        if (err != ESP_OK) { return err; }
-        nvs_close(my_handle);
-        return ESP_OK;
-
-}
-
-
-void app_main()
-{
-        lv_init();
-        nvs_init();
-
 
         disp_spi_init();
         ili9341_init();
-
-#if ENABLE_TOUCH_INPUT
         tp_spi_init();
         xpt2046_init();
-#endif
+}
 
-        static lv_color_t buf1[DISP_BUF_SIZE];
-        static lv_color_t buf2[DISP_BUF_SIZE];
-        static lv_disp_buf_t disp_buf;
-        lv_disp_buf_init(&disp_buf, buf1, buf2, DISP_BUF_SIZE);
+static bool display_init(void)
+{
 
-        lv_disp_drv_t disp_drv;
-        lv_disp_drv_init(&disp_drv);
-        disp_drv.flush_cb = ili9341_flush;
-        disp_drv.buffer = &disp_buf;
-        lv_disp_drv_register(&disp_drv);
+        lv_disp_t const * p_display = NULL;
+        lv_indev_t const * p_input_device= NULL;
+        bool success = true;
 
-#if ENABLE_TOUCH_INPUT
-        lv_indev_drv_t indev_drv;
-        lv_indev_drv_init(&indev_drv);
-        indev_drv.read_cb = xpt2046_read;
-        indev_drv.type = LV_INDEV_TYPE_POINTER;
-        lv_indev_drv_register(&indev_drv);
-#endif
+        lv_disp_drv_t display_driver;
+        lv_indev_drv_t input_dev_driver;
 
-        esp_register_freertos_tick_hook(lv_tick_task);
+        lv_init();
 
-        state_machine_init();
+        lv_disp_drv_init(&display_driver);
+        display_driver.flush_cb = ili9341_flush;
+        display_driver.buffer = &display_buffer;
+        p_display = lv_disp_drv_register(&display_driver);
 
-        while (1) {
+        success = (NULL != p_display);
 
-                vTaskDelay(1);
-                lv_task_handler();
+        if (success) {
+                lv_indev_drv_init(&input_dev_driver);
+                input_dev_driver.read_cb = xpt2046_read;
+                input_dev_driver.type = LV_INDEV_TYPE_POINTER;
+
+                p_input_device = lv_indev_drv_register(&input_dev_driver);
+
+                success = (NULL != p_input_device);
         }
+
+        if (success) {
+                lv_disp_buf_init(&display_buffer, buf1, buf2, DISP_BUF_SIZE);
+                esp_register_freertos_tick_hook(lv_tick_task);
+        }
+
+        return success;
 }
 
 static void IRAM_ATTR lv_tick_task(void)
 {
         lv_tick_inc(portTICK_RATE_MS);
 }
+/*
+ *******************************************************************************
+ * Interrupt Service Routines / Tasks / Thread Main Functions                  *
+ *******************************************************************************
+ */

@@ -1,11 +1,11 @@
 /*!
  *******************************************************************************
- * @file state_machine_states_idle.h
+ * @file user_interface.h
  *
  * @brief 
  *
  * @author Raúl Gotor (raulgotor@gmail.com)
- * @date 18.09.21
+ * @date 19.09.21
  *
  * @par
  * COPYRIGHT NOTICE: (c) 2021 Raúl Gotor
@@ -13,8 +13,9 @@
  *******************************************************************************
  */
 
-#ifndef STATE_MACHINE_STATES_IDLE_H
-#define STATE_MACHINE_STATES_IDLE_H
+
+#ifndef GUI_H
+#define GUI_H
 
 /*
  *******************************************************************************
@@ -42,6 +43,8 @@
  *******************************************************************************
  */
 
-void state_machine_states_set_entry_point_state(void);
+bool ui_init(void);
 
-#endif //STATE_MACHINE_STATES_IDLE_H
+bool gui_configure_main_scr(void);
+
+#endif //GUI_H
