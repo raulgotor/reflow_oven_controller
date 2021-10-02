@@ -41,12 +41,23 @@
  *******************************************************************************
  */
 
+typedef struct {
+        state_machine_state_text_t text;
+        state_machine_msg_t message;
+} state_machine_state_to_timer_map_t;
 
 /*
  *******************************************************************************
  * Constants                                                                   *
  *******************************************************************************
  */
+
+state_machine_state_to_timer_map_t const m_machine_state_to_timer_map[] =
+{
+        {STATE_MACHINE_STATE_SOAKING, STATE_MACHINE_MSG_SOAK_TIME_REACHED},
+        {STATE_MACHINE_STATE_DWELL,   STATE_MACHINE_MSG_DWELL_TIME_REACHED},
+        {STATE_MACHINE_STATE_COOLING, STATE_MACHINE_MSG_HEATER_COOLING_TIMEOUT}
+};
 
 /*
  *******************************************************************************
@@ -79,6 +90,7 @@ static bool m_is_initialized = false;
  * Public Function Bodies                                                      *
  *******************************************************************************
  */
+
 
 bool state_machine_init(void) {
 
@@ -204,6 +216,25 @@ bool state_machine_send_event(state_machine_event_type_t const type,
         return success;
 }
 
+state_machine_msg_t state_machine_get_timeout_msg(state_machine_state_text_t const state)
+{
+        size_t const  state_to_timer_map_size =
+                sizeof(m_machine_state_to_timer_map) /
+                sizeof(m_machine_state_to_timer_map[0]);
+
+        state_machine_msg_t message = STATE_MACHINE_MSG_COUNT;
+        bool found = false;
+        size_t i;
+
+        for (i = 0; ((state_to_timer_map_size > i) && (!found)); i++) {
+                if (state == m_machine_state_to_timer_map[i].text) {
+                        message = m_machine_state_to_timer_map[i].message;
+                        found = true;
+                }
+        }
+
+        return message;
+}
 
 /*
  *******************************************************************************

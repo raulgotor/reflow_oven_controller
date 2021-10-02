@@ -22,6 +22,8 @@
  *******************************************************************************
  */
 
+//TODO: define time and convert to ticks
+#define STATE_MACHINE_TIMEOUT_CALLBACK          1000
 
 /*
  *******************************************************************************
@@ -51,6 +53,7 @@ typedef enum {
         STATE_MACHINE_MSG_SOAK_TIME_REACHED,
         STATE_MACHINE_MSG_DWELL_TIME_REACHED,
         STATE_MACHINE_MSG_HEATER_COOLING_TARGET_REACHED,
+        STATE_MACHINE_MSG_HEATER_COOLING_TIMEOUT,
         STATE_MACHINE_MSG_HEATER_ERROR,
         STATE_MACHINE_MSG_HEATER_TIMEOUT,
         STATE_MACHINE_MSG_HEATER_TOO_FAST,
@@ -74,7 +77,9 @@ typedef enum {
         STATE_MACHINE_STATE_HEATING,
         STATE_MACHINE_STATE_SOAKING,
         STATE_MACHINE_STATE_REFLOW,
+        STATE_MACHINE_STATE_DWELL,
         STATE_MACHINE_STATE_COOLING,
+        STATE_MACHINE_STATE_ERROR,
         STATE_MACHINE_STATE_COUNT
 } state_machine_state_text_t;
 
@@ -101,5 +106,8 @@ bool state_machine_wait_for_event(uint32_t const time_ms,
 bool state_machine_send_event(state_machine_event_type_t const type,
                               state_machine_data_t const data,
                               uint32_t const timeout);
+
+state_machine_msg_t state_machine_get_timeout_msg(
+                state_machine_state_text_t const state);
 
 #endif //STATE_MACHINE_H
