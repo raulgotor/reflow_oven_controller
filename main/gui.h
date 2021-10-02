@@ -47,4 +47,6 @@ bool ui_init(void);
 
 bool gui_configure_main_scr(void);
 
+void gui_configure_buttons_for_state(state_machine_state_text_t state);
+
 #endif //GUI_H

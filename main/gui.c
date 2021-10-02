@@ -135,13 +135,20 @@ int8_t const roller_margin = 10;
 
 bool ui_init(void)
 {
-        gui_configure_styles();
-        gui_configure_main_scr();
-        gui_configure_tab_1();
-        gui_configure_tab_2();
-        gui_configure_tab_3();
+        state_machine_state_text_t state = STATE_MACHINE_STATE_COUNT;
+        bool success = state_machine_get_state(&state);
 
-        return false;
+        if (success) {
+                gui_configure_styles();
+                gui_configure_main_scr();
+                gui_configure_tab_1();
+                gui_configure_tab_2();
+                gui_configure_tab_3();
+                // TODO: change this for a INIT_STATE macro pointing to IDLE
+                gui_configure_buttons_for_state(STATE_MACHINE_STATE_IDLE);
+        }
+
+        return success;
 }
 
 
