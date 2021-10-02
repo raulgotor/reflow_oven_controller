@@ -91,8 +91,11 @@ lv_obj_t * mp_chrt_1;
 static lv_obj_t * m_p_temp_label;
 static lv_obj_t * p_lmeter;
 
+static lv_obj_t * p_start_button_label;
+
+
 static lv_obj_t * m_p_start_button;
-static lv_obj_t * m_p_stop_button;
+//static lv_obj_t * m_p_stop_button;
 
 static lv_obj_t * p_preheat_temp_roller;
 static lv_obj_t * p_preheat_time_roller;
@@ -329,23 +332,24 @@ static void gui_configure_tab_1(void)
 {
 
         lv_obj_t * p_profile_label;
-        lv_obj_t * p_start_button_label;
         lv_obj_t * stop_button_label;
 
         // Start button
 
         m_p_start_button = lv_btn_create(mp_tab_1, NULL);
         lv_obj_set_pos(m_p_start_button, 10, 10);
-        lv_obj_set_size(m_p_start_button, 100, m_menu_bar_height);
+        lv_obj_set_size(m_p_start_button, 100, 100);
         lv_obj_set_event_cb(m_p_start_button, ui_button_event);
 
         // Stop button
 
+        /*
         m_p_stop_button = lv_btn_create(mp_tab_1, NULL);
         lv_obj_set_size(m_p_stop_button, 100, m_menu_bar_height);
         stop_button_label = lv_label_create(m_p_stop_button, NULL);
         lv_label_set_text(stop_button_label, LV_SYMBOL_STOP "Stop");
         lv_obj_set_event_cb(m_p_stop_button, ui_button_event);
+        */
 
         // Labels
 
@@ -370,8 +374,10 @@ static void gui_configure_tab_1(void)
         lv_lmeter_set_scale(p_lmeter, 270, 54);
         lv_lmeter_set_value(p_lmeter, 183);
 
-        lv_obj_align(m_p_stop_button, m_p_start_button, LV_ALIGN_OUT_BOTTOM_LEFT, 0, btnVerticalSeparation);
-        lv_obj_align(p_profile_label, m_p_stop_button, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 41);
+        //lv_obj_align(m_p_stop_button, m_p_start_button, LV_ALIGN_OUT_BOTTOM_LEFT, 0, btnVerticalSeparation);
+        //lv_obj_align(p_profile_label, m_p_stop_button, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 41);
+        lv_obj_align(p_profile_label, m_p_start_button, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 81);
+
         lv_obj_align(m_p_temp_label, p_lmeter, LV_ALIGN_CENTER, 0, 0);
         //   lv_obj_align(profileLabel, chrt1, LV_ALIGN_OUT_TOP_LEFT, 0, 0);
         //   lv_obj_align(profileLabel, chrt1, LV_ALIGN_OUT_TOP_LEFT, 0, 0);
@@ -553,42 +559,25 @@ static void ui_button_event(lv_obj_t * p_object, lv_event_t event)
 {
         state_machine_data_t state_machine_event_data;
         state_machine_state_text_t state;
-        bool success = state_machine_get_state(&state);
+        bool success;
 
-        if ((!success) || (LV_EVENT_CLICKED != event)) {
+        if (LV_EVENT_CLICKED != event) {
                 return;
         }
 
         if (m_p_start_button == p_object) {
+                ESP_LOGI(TAG, "Start button pressed");
+                success = state_machine_get_state(&state);
+
+                if (!success) {
+                        return;
+                }
 
                 switch (state) {
 
                 case STATE_MACHINE_STATE_IDLE:
                         state_machine_event_data.user_action = STATE_MACHINE_ACTION_START;
-
                         break;
-
-                // Intentionally fall-through
-                case STATE_MACHINE_STATE_HEATING:
-                case STATE_MACHINE_STATE_SOAKING:
-                case STATE_MACHINE_STATE_REFLOW:
-                        state_machine_event_data.user_action = STATE_MACHINE_ACTION_PAUSE;
-
-
-                        break;
-                default:
-                        break;
-                }
-
-                state_machine_send_event(STATE_MACHINE_EVENT_TYPE_ACTION,
-                                         state_machine_event_data,
-                                         portMAX_DELAY);
-
-        }
-
-        if (m_p_stop_button == p_object) {
-
-                switch (state) {
 
                 // Intentionally fall-through
                 case STATE_MACHINE_STATE_HEATING:
@@ -596,13 +585,15 @@ static void ui_button_event(lv_obj_t * p_object, lv_event_t event)
                 case STATE_MACHINE_STATE_REFLOW:
                         state_machine_event_data.user_action = STATE_MACHINE_ACTION_ABORT;
                         break;
+
                 default:
-                        break;
+                        return;
                 }
 
                 state_machine_send_event(STATE_MACHINE_EVENT_TYPE_ACTION,
                                          state_machine_event_data,
                                          portMAX_DELAY);
+
 
         }
 }
