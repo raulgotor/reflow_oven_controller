@@ -266,57 +266,6 @@ static void update_rollers()
         //lv_roller_set_selected(ramp_speed_roller, my_profile.ramp_speed, false);
 }
 
-/*
-
- void profileUpdater() {
-
-
-
-    uint16_t stage1time = my_profile.ramp_speed;
-    uint16_t stage2time = stage1time + my_profile.preheat_time;
-    uint16_t stage3time = stage2time + my_profile.ramp_speed;
-    uint16_t stage4time = stage3time + my_profile.reflow_time;;
-    uint16_t stage5time = stage4time + my_profile.coolingTime;;
-
-
-    double a;
-    uint16_t b;
-
-    b = 20;
-    a = (double) (my_profile.preheat_temp - b) / my_profile.ramp_speed;
-
-    for (int i = 0; i < stage1time; i++) {
-        prof1array[i] = a * i + b;
-    }
-
-    for (int i = stage1time; i < stage2time; i++) {
-        prof1array[i] = my_profile.preheat_temp;
-    }
-
-    a = (double) (my_profile.reflow_temp - my_profile.preheat_temp) / (stage3time - stage2time);
-    b = my_profile.preheat_temp - a * stage2time;
-
-
-    for (int i = stage2time; i < stage3time; i++) {
-        prof1array[i] = a * i + b;
-    }
-
-    for (int i = stage3time; i < stage4time; i++) {
-        prof1array[i] = my_profile.reflow_temp;
-    }
-
-    a = (double) (20 - my_profile.reflow_temp) / (stage5time - stage4time);
-    b = my_profile.reflow_temp - a * stage4time;
-
-
-    for (int i = stage4time; i < stage5time; i++) {
-        prof1array[i] = a * i + b;
-    }
-
-
-}
- */
-
 static void gui_configure_styles(void)
 {
         lv_style_copy(&m_style, &lv_style_plain);
