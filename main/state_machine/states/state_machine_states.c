@@ -142,35 +142,36 @@ state_machine_state_text_t state_machine_pointer_to_text(state_machine_state_t c
 
 static void state_machine_state_idle(void)
 {
-        state_machine_event_t * p_event = NULL;
-        bool success = true;
+        state_machine_event_t event = {.type = STATE_MACHINE_EVENT_TYPE_COUNT};
+        state_machine_state_text_t state;
+        bool success = state_machine_get_state(&state);
         ESP_LOGI(TAG, "State Idle");
 
-        success = state_machine_wait_for_event(portMAX_DELAY, &p_event);
+        if (success) {
+                gui_configure_buttons_for_state(state);
+                success = state_machine_wait_for_event(portMAX_DELAY, &event);
+
+        }
+
+        if (success) {
+                // TODO: validate event?
+        }
 
         if (!success) {
-                ESP_LOGE(TAG, "%s line %d", __FILENAME__, __LINE__);
                 assert(0);
-        }
-
-        if ((success) && (NULL != p_event) &&
-            (STATE_MACHINE_EVENT_TYPE_ACTION == p_event->type)) {
-
-                switch (p_event->data.user_action) {
-                case STATE_MACHINE_ACTION_START:
-
-                        state_machine_set_state(state_machine_state_heating);
-
-                        vPortFree(p_event);
-                        p_event = NULL;
-
+        } else {
+                switch (event.type) {
+                case STATE_MACHINE_EVENT_TYPE_ACTION:
+                        if (STATE_MACHINE_ACTION_START == event.data.user_action) {
+                                state_machine_set_state(state_machine_state_heating);
+                        } else {
+                                assert(0 && "This event type was not expected here");
+                        }
                         break;
                 default:
-                        break;
+                        assert(0 && "This event type was not expected here");
                 }
         }
-
-
 }
 
 static void state_machine_transition_abort()
@@ -182,14 +183,17 @@ static void state_machine_transition_abort()
 
 static void state_machine_state_heating(void)
 {
-        state_machine_event_t event;
-        bool success;
-        reflow_profile_t profile;
-
         ESP_LOGI(TAG, "State Heating");
 
+        state_machine_event_t event;
+        state_machine_state_text_t state;
+        bool success = state_machine_get_state(&state);
+        reflow_profile_t profile;
 
-        success = reflow_profile_get_current(&profile);
+        if (success) {
+                gui_configure_buttons_for_state(state);
+                success = reflow_profile_get_current(&profile);
+        }
 
         if (success) {
                 // TODO: success = heater_set_target(profile.reflow_temperature);
@@ -201,43 +205,49 @@ static void state_machine_state_heating(void)
 
         if (!success) {
                 state_machine_set_state(state_machine_state_error);
-        }
-
-        switch (event.type) {
-        case STATE_MACHINE_EVENT_TYPE_ACTION:
-                if (STATE_MACHINE_ACTION_ABORT == event.data.user_action) {
-                        state_machine_set_state(state_machine_state_cooling);
+        } else {
+                switch (event.type) {
+                case STATE_MACHINE_EVENT_TYPE_ACTION:
+                        if (STATE_MACHINE_ACTION_ABORT == event.data.user_action) {
+                                state_machine_set_state(state_machine_state_cooling);
+                        }
+                        break;
+                        case STATE_MACHINE_EVENT_TYPE_MESSAGE:
+                                if (STATE_MACHINE_MSG_HEATER_PREHEAT_TARGET_REACHED == event.data.message) {
+                                        state_machine_set_state(state_machine_state_soak);
+                                } else if (STATE_MACHINE_MSG_HEATER_ERROR ==
+                                event.data.message) {
+                                        state_machine_set_state(state_machine_state_error);
+                                }
+                                break;
+                                default:
+                                        assert(0);
                 }
-                break;
-        case STATE_MACHINE_EVENT_TYPE_MESSAGE:
-                if (STATE_MACHINE_MSG_HEATER_PREHEAT_TARGET_REACHED == event.data.message) {
-                        state_machine_set_state(state_machine_state_soak);
-                } else if (STATE_MACHINE_MSG_HEATER_ERROR ==
-                           event.data.message) {
-                        state_machine_set_state(state_machine_state_error);
-                }
-                break;
-        default:
-                assert(0);
         }
 }
+
+
 
 static void state_machine_state_soak(void)
 {
         ESP_LOGI(TAG, "State Soaking");
 
         state_machine_event_t event;
-        bool success;
+        state_machine_state_text_t state;
+        bool success = state_machine_get_state(&state);
         reflow_profile_t profile;
 
-        success = reflow_profile_get_current(&profile);
+        if (success) {
+                gui_configure_buttons_for_state(state);
+                success = reflow_profile_get_current(&profile);
+        }
 
         if (success) {
                 success = reflow_timer_start_timer(profile.soak_time_ms, state);
         }
 
         if (success) {
-                success = state_machine_wait_for_event(profile.soak_time, &event);
+                success = state_machine_wait_for_event(portMAX_DELAY, &event);
         }
 
         if (!success) {
@@ -268,10 +278,14 @@ static void state_machine_state_reflow(void)
         ESP_LOGI(TAG, "State Reflow");
 
         state_machine_event_t event;
-        bool success;
+        state_machine_state_text_t state;
+        bool success = state_machine_get_state(&state);
         reflow_profile_t profile;
 
-        success = reflow_profile_get_current(&profile);
+        if (success) {
+                gui_configure_buttons_for_state(state);
+                success = reflow_profile_get_current(&profile);
+        }
 
         if (success) {
                 //TODO: implement
@@ -312,10 +326,14 @@ static void state_machine_state_dwell(void)
         ESP_LOGI(TAG, "State Dwell");
 
         state_machine_event_t event;
-        bool success;
+        state_machine_state_text_t state;
+        bool success = state_machine_get_state(&state);
         reflow_profile_t profile;
 
-        success = reflow_profile_get_current(&profile);
+        if (success) {
+                gui_configure_buttons_for_state(state);
+                success = reflow_profile_get_current(&profile);
+        }
 
         if (success) {
                 success = reflow_timer_start_timer(profile.dwell_time_ms, state);
@@ -324,7 +342,7 @@ static void state_machine_state_dwell(void)
         if (success) {
                 //TODO: move to right place
                 uint32_t const m_reflow_timeout = portMAX_DELAY;
-                success = state_machine_wait_for_event(profile.dwell_time, &event);
+                success = state_machine_wait_for_event(m_reflow_timeout, &event);
         }
 
         if (!success) {
@@ -355,7 +373,12 @@ static void state_machine_state_cooling(void)
         ESP_LOGI(TAG, "State Cooling");
 
         state_machine_event_t event;
-        bool success = true;
+        state_machine_state_text_t state;
+        bool success = state_machine_get_state(&state);
+
+        if (success) {
+                gui_configure_buttons_for_state(state);
+        }
 
         if (success) {
                 //TODO: implement
@@ -394,7 +417,10 @@ static void state_machine_state_error(void)
         ESP_LOGI(TAG, "State Error");
 
         state_machine_event_t event;
-        bool success;
+        state_machine_state_text_t state;
+        bool success = true;
+
+        gui_configure_buttons_for_state(STATE_MACHINE_STATE_ERROR);
 
         (void)clean_up_device();
         // TODO: display_ui_advice();
