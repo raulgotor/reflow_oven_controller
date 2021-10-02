@@ -19,10 +19,18 @@
  *******************************************************************************
  */
 
+#define TEMP_SIMULATION 1
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+
+#if TEMP_SIMULATION
+#include "state_machine/state_machine.h"
+#include "reflow_profile.h"
+#endif
+
 #include "thermocouple.h"
 
 /*
@@ -100,6 +108,10 @@ bool thermocouple_init(void)
         }
 
         if (success) {
+
+        }
+
+        if (success) {
                 thermocouple_update_temperature();
         }
 
@@ -136,10 +148,66 @@ bool thermocouple_get_temperature(thermocouple_id_t const id,
 
 static void thermocouple_update_temperature(void)
 {
-        //m_temperature[0] = hal_thermocouple_get_temperature(0);
-        //m_temperature[1] = hal_thermocouple_get_temperature(1);
+#if TEMP_SIMULATION
+        state_machine_state_text_t state;
+        reflow_profile_t profile;
+        reflow_profile_get_current(&profile);
+        state_machine_get_state(&state);
+        state_machine_data_t data;
 
-        m_temperature[0]++;
+        switch (state) {
+        case STATE_MACHINE_STATE_HEATING:
+                if (profile.preheat_temperature > m_temperature[0]) {
+                        m_temperature[0]++;
+                } else {
+                        data.message = STATE_MACHINE_MSG_HEATER_PREHEAT_TARGET_REACHED;
+                        state_machine_send_event(STATE_MACHINE_EVENT_TYPE_MESSAGE, data,
+                                                 portMAX_DELAY);
+                }
+                break;
+        case STATE_MACHINE_STATE_SOAKING:
+                if (profile.preheat_temperature > m_temperature[0]) {
+                        m_temperature[0]++;
+                }
+                break;
+
+        case STATE_MACHINE_STATE_REFLOW:
+                if (profile.reflow_temperature > m_temperature[0]) {
+                        m_temperature[0]++;
+                } else {
+                        data.message = STATE_MACHINE_MSG_HEATER_REFLOW_TARGET_REACHED;
+                        state_machine_send_event(STATE_MACHINE_EVENT_TYPE_MESSAGE, data,
+                                                 portMAX_DELAY);
+                }
+                break;
+
+        case STATE_MACHINE_STATE_DWELL:
+                if (profile.reflow_temperature > m_temperature[0]) {
+                        m_temperature[0]++;
+                }
+
+                break;
+        case STATE_MACHINE_STATE_COOLING:
+                if (profile.cooling_temperature < m_temperature[0]) {
+                        m_temperature[0]--;
+                } else {
+                        data.message = STATE_MACHINE_MSG_HEATER_COOLING_TARGET_REACHED;
+                        state_machine_send_event(STATE_MACHINE_EVENT_TYPE_MESSAGE, data,
+                                                 portMAX_DELAY);
+                }
+                break;
+        case STATE_MACHINE_STATE_ERROR:
+                if (10 < m_temperature[0]) {
+                        m_temperature[0]--;
+                }
+                break;
+        default:
+                break;
+        }
+#else
+        m_temperature[0] = hal_thermocouple_get_temperature(0);
+        m_temperature[1] = hal_thermocouple_get_temperature(1);
+#endif
 }
 
 /*
@@ -150,10 +218,16 @@ static void thermocouple_update_temperature(void)
 
 void thremocouple_task(void * pvParameters)
 {
+#if TEMP_SIMULATION
+        m_temperature[0] = 27;
+#endif
         for (;;) {
 
+#if TEMP_SIMULATION
+                vTaskDelay(100);
+#else
                 vTaskDelay(m_refresh_rate);
-
+#endif
                 thermocouple_update_temperature();
         }
 }
