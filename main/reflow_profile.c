@@ -209,7 +209,15 @@ bool reflow_profile_use(reflow_profile_t const * const p_reflow_profile)
 }
 
 bool reflow_profile_get_current(reflow_profile_t * const p_reflow_profile) {
-        return false;
+
+        // TODO: change this to default parameter if load from flash not implemented
+        p_reflow_profile->preheat_temperature = 35;
+        p_reflow_profile->soak_time_ms = 5000;
+        p_reflow_profile->reflow_temperature = 70;
+        p_reflow_profile->dwell_time_ms = 5000;
+        p_reflow_profile->cooling_time_ms = 60;
+        p_reflow_profile->cooling_temperature = 25;
+        return true;
 }
 
 /*

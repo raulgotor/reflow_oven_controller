@@ -38,10 +38,11 @@
 typedef struct {
         char * name;
         uint16_t preheat_temperature;
-        uint16_t soak_time;
+        uint16_t soak_time_ms;
         uint16_t reflow_temperature;
-        uint16_t dwell_time;
-        uint16_t cooling_time;
+        uint16_t dwell_time_ms;
+        uint16_t cooling_temperature;
+        uint16_t cooling_time_ms;
         uint16_t ramp_speed;
 } reflow_profile_t;
 
