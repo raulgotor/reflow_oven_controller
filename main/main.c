@@ -23,6 +23,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <driver/spi_master.h>
 #include "esp_system.h"
 #include "esp_freertos_hooks.h"
 #include "freertos/FreeRTOS.h"
@@ -35,9 +36,11 @@
 #include "ili9341.h"
 #include "tp_spi.h"
 #include "xpt2046.h"
-
-#include "gui.h"
+#include "freertos/timers.h"
 #include "state_machine/state_machine.h"
+#include "gui.h"
+#include "thermocouple.h"
+#include "reflow_timer.h"
 
 /*
  *******************************************************************************
@@ -97,19 +100,22 @@ static lv_disp_buf_t display_buffer;
 
 void app_main()
 {
+
         hardware_init();
 
         (void)display_init();
 
         // nvs_init();
 
-        state_machine_init();
+        reflow_timer_init();
 
         ui_init();
 
+        state_machine_init();
+
         //mosfet_init();
 
-        //thermocouple_init();
+        thermocouple_init();
 
         while (1) {
                 vTaskDelay(1);

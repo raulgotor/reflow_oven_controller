@@ -23,9 +23,12 @@
 #include <stddef.h>
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
+#include "freertos/timers.h"
 #include "reflow_profile.h"
 #include "state_machine/state_machine.h"
 #include "state_machine/state_machine_task.h"
+#include "reflow_timer.h"
+#include "gui.h"
 #include "state_machine/states/state_machine_states.h"
 
 /*
@@ -194,7 +197,7 @@ static void state_machine_state_soak(void)
         success = reflow_profile_get_current(&profile);
 
         if (success) {
-                // TODO: success = timer_task_set_timer(profile.soak_time, timer_message = STATE_MACHINE_MESSAGE_SOAK_TIME_REACHED);
+                success = reflow_timer_start_timer(profile.soak_time_ms, state);
         }
 
         if (success) {
@@ -279,8 +282,7 @@ static void state_machine_state_dwell(void)
         success = reflow_profile_get_current(&profile);
 
         if (success) {
-                //TODO: implement
-                // success = timer_task_set_timer(profile.dwell_time, timer_message = STATE_MACHINE_MESSAGE_DWELL_TIME_REACHED);
+                success = reflow_timer_start_timer(profile.dwell_time_ms, state);
         }
 
         if (success) {
@@ -300,7 +302,7 @@ static void state_machine_state_dwell(void)
                 }
                 break;
         case STATE_MACHINE_EVENT_TYPE_MESSAGE:
-                if (STATE_MACHINE_MSG_HEATER_REFLOW_TARGET_REACHED == event.data.message) {
+                if (STATE_MACHINE_MSG_DWELL_TIME_REACHED == event.data.message) {
                         state_machine_set_state(state_machine_state_cooling);
                 } else if (STATE_MACHINE_MSG_HEATER_ERROR ==
                            event.data.message) {
