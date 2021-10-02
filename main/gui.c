@@ -536,11 +536,11 @@ static void ui_roller_event(lv_obj_t * p_object, lv_event_t event)
                 my_profile.preheat_temperature = selection + REFLOW_PROFILE_PREHEAT_TEMPERATURE_MIN;
 
         } else if (p_object == p_preheat_time_roller) {
-                my_profile.soak_time = selection * 10 + REFLOW_PROFILE_SOAK_TIME_MIN;
+                my_profile.soak_time_ms = selection * 10 + REFLOW_PROFILE_SOAK_TIME_MIN;
         } else if (p_object == p_reflow_temp_roller) {
                 my_profile.reflow_temperature = selection + REFLOW_PROFILE_REFLOW_TEMPERATURE_MIN;
         } else if (p_object == p_reflow_time_roller) {
-                my_profile.dwell_time = selection * 10 + REFLOW_PROFILE_REFLOW_TIME_MIN;
+                my_profile.dwell_time_ms = selection * 10 + REFLOW_PROFILE_REFLOW_TIME_MIN;
         } else if (p_object == p_ramp_speed_roller) {
                 my_profile.ramp_speed = selection;
         }
