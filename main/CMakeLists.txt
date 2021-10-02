@@ -1,9 +1,4 @@
-set(SOURCES main.c state_machine/state_machine.c
-                   state_machine/state_machine_task.c
-                   state_machine/states/state_machine_states.c
-        reflow_profile.c
-                   thermocouple.c
-        gui.c)
+file(GLOB_RECURSE SOURCES "*.c")
 
 idf_component_register(SRCS ${SOURCES}
                     INCLUDE_DIRS .
