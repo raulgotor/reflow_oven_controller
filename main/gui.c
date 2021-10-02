@@ -24,9 +24,11 @@
 #include "freertos/FreeRTOS.h"
 #include "state_machine/state_machine.h"
 #include "elegance4.c"
+#include "esp_log.h"
 
 
 #include "reflow_profile.h"
+#include "thermocouple.h"
 #include "gui.h"
 
 
@@ -35,6 +37,8 @@
  * Private Macros                                                              *
  *******************************************************************************
  */
+
+#define TAG                                     __FILENAME__
 
 /*
  *******************************************************************************
@@ -148,7 +152,7 @@ bool gui_configure_main_scr(void)
         lv_obj_t * p_separation_line;
         lv_theme_t * p_theme;
 
-        //lv_task_create(label_refresher_task, 10, LV_TASK_PRIO_MID, NULL);
+        lv_task_create(label_refresher_task, 10, LV_TASK_PRIO_MID, NULL);
 
         // Theme
 
@@ -220,36 +224,48 @@ bool gui_configure_splash_src()
         return false;
 }
 
+void gui_configure_buttons_for_state(state_machine_state_text_t state) {
+
+        switch (state) {
+
+        // Intentionally fall through
+        case STATE_MACHINE_STATE_HEATING:
+        case STATE_MACHINE_STATE_SOAKING:
+        case STATE_MACHINE_STATE_REFLOW:
+        case STATE_MACHINE_STATE_DWELL:
+                lv_label_set_text(p_start_button_label, LV_SYMBOL_STOP "Stop");
+                break;
+
+        case STATE_MACHINE_STATE_IDLE:
+                lv_label_set_text(p_start_button_label, LV_SYMBOL_PLAY "Start");
+                break;
+
+        default:
+                break;
+        }
+}
+
 /*
  *******************************************************************************
  * Private Function Bodies                                                     *
  *******************************************************************************
  */
 
-
-
-static void update_label(const char * text)
-{
-        lv_obj_clean(m_p_start_button);
-        lv_obj_t * label = lv_label_create(m_p_start_button, NULL);
-        lv_label_set_text(label, text);
-
-}
-
-
 static void label_refresher_task(void * p)
 {
         char str[10];
+        int16_t temperature;
         //if (reflowState == REFLOW_STATE_RUNNING) {
         //        serie2->points[reflowTime] = tempCounter;
         //}
 
         lv_chart_refresh(mp_chrt_1);
 
-        //sprintf(str, "%dº", tempCounter);
+        thermocouple_get_temperature(0, &temperature);
+        sprintf(str, "%dº", temperature);
         lv_label_set_text(m_p_temp_label, str);
         lv_obj_align(m_p_temp_label, p_lmeter, LV_ALIGN_CENTER, 0, 0);
-        //lv_lmeter_set_value(lmeter, tempCounter);
+        lv_lmeter_set_value(p_lmeter, temperature);
 
 
         if (lv_obj_get_screen(m_p_temp_label)) {
