@@ -47,6 +47,9 @@ bool ui_init(void);
 
 bool gui_configure_main_scr(void);
 
-void gui_configure_buttons_for_state(state_machine_state_text_t state);
+void gui_configure_buttons_for_state(state_machine_state_text_t const state);
+
+void gui_configure_for_profile(reflow_profile_t const profile);
+
 
 #endif //GUI_H

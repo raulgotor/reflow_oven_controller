@@ -147,6 +147,13 @@ bool ui_init(void)
                 gui_configure_buttons_for_state(STATE_MACHINE_STATE_IDLE);
         }
 
+        if (success) {
+                //TODO: remove once we have a proper profile loading on boot
+                reflow_profile_t profile;
+                reflow_profile_get_current(&profile);
+                gui_configure_for_profile(profile);
+        }
+
         return success;
 }
 
@@ -233,7 +240,7 @@ bool gui_configure_splash_src()
         return false;
 }
 
-void gui_configure_buttons_for_state(state_machine_state_text_t state) {
+void gui_configure_buttons_for_state(state_machine_state_text_t const state) {
 
         char * state_str = state_machine_get_state_string(state);
 
@@ -261,6 +268,14 @@ void gui_configure_buttons_for_state(state_machine_state_text_t state) {
 
         lv_label_set_text(p_state_label, state_str);
 
+}
+
+void gui_configure_for_profile(reflow_profile_t const profile) {
+
+        int16_t meter_value_max = (int16_t) profile.reflow_temperature;
+
+        lv_lmeter_set_range(p_lmeter, 0, meter_value_max);
+        lv_lmeter_set_scale(p_lmeter, 270, 54);
 }
 
 /*
@@ -356,7 +371,6 @@ static void gui_configure_tab_1(void)
         lv_label_set_style(p_profile_label, LV_LABEL_STYLE_MAIN, &m_style);
 
         p_state_label = lv_label_create(mp_tab_1, NULL);
-        lv_label_set_text(p_state_label, "");
         lv_label_set_style(p_state_label, LV_LABEL_STYLE_MAIN, &m_style);
 
         p_start_button_label = lv_label_create(m_p_start_button, NULL);
@@ -364,7 +378,6 @@ static void gui_configure_tab_1(void)
 
         m_p_temp_label = lv_label_create(mp_tab_1, NULL);
         lv_label_set_align(m_p_temp_label, LV_LABEL_ALIGN_CENTER);
-        lv_label_set_text(m_p_temp_label, "193º");
         lv_label_set_style(m_p_temp_label, LV_LABEL_STYLE_MAIN, &m_big_style);
 
         // Gauge
@@ -372,9 +385,6 @@ static void gui_configure_tab_1(void)
         p_lmeter = lv_lmeter_create(mp_tab_1, NULL);
         lv_obj_set_pos(p_lmeter, 135, 10);
         lv_obj_set_size(p_lmeter, 140, 140);
-        lv_lmeter_set_range(p_lmeter, 0, 300);
-        lv_lmeter_set_scale(p_lmeter, 270, 54);
-        lv_lmeter_set_value(p_lmeter, 183);
 
         lv_obj_align(p_profile_label, m_p_start_button, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 20);
         lv_obj_align(p_state_label, p_profile_label, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
