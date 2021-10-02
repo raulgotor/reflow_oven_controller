@@ -121,13 +121,7 @@ static lv_obj_t * mp_tab_2;
 static lv_obj_t * m_p_tab_3;
 
 // Dimensions
-static uint16_t const m_menu_bar_height = 30;
 static uint16_t const m_chart_tick_space_width = 20;
-static uint16_t const m_margin_left = 10;
-static uint16_t const m_margin_right = 10;
-static uint16_t const m_margin_top = 20;
-static uint16_t const m_margin_bottom = m_menu_bar_height + m_chart_tick_space_width + 10;
-static lv_coord_t const m_btn_vertical_separation = 10;
 static int8_t const m_roller_margin = 10;
 
 
