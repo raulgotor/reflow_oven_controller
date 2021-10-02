@@ -29,10 +29,6 @@
  *******************************************************************************
  */
 
-typedef struct {
-        state_machine_state_text_t text;
-        state_machine_state_t function;
-} state_machine_state_map_t;
 
 /*
  *******************************************************************************
@@ -40,10 +36,6 @@ typedef struct {
  *******************************************************************************
  */
 
-state_machine_state_text_t state_machine_pointer_to_text(
-        state_machine_state_t const state);
-
-state_machine_state_t state_machine_text_to_pointer(state_machine_state_text_t const text);
 
 /*
  *******************************************************************************
@@ -52,5 +44,19 @@ state_machine_state_t state_machine_text_to_pointer(state_machine_state_text_t c
  */
 
 void state_machine_states_set_entry_point_state(void);
+
+void state_machine_state_idle(void);
+
+void state_machine_state_heating(void);
+
+void state_machine_state_soak(void);
+
+void state_machine_state_reflow(void);
+
+void state_machine_state_dwell(void);
+
+void state_machine_state_cooling(void);
+
+void state_machine_state_error(void);
 
 #endif //STATE_MACHINE_STATES_IDLE_H

@@ -24,6 +24,7 @@
 #include "freertos/FreeRTOSConfig.h"
 #include "freertos/timers.h"
 #include "esp_log.h"
+#include "state_machine/states/state_machine_states.h"
 #include "state_machine/state_machine.h"
 #include "reflow_timer.h"
 

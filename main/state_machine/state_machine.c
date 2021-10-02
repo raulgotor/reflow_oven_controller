@@ -22,9 +22,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "esp_log.h"
+#include "states/state_machine_states.h"
 #include "state_machine.h"
 #include "state_machine_task.h"
-#include "states/state_machine_states.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -44,10 +44,6 @@
  *******************************************************************************
  */
 
-typedef struct {
-        state_machine_state_text_t text;
-        state_machine_msg_t message;
-} state_machine_state_to_timer_map_t;
 
 /*
  *******************************************************************************
@@ -55,12 +51,8 @@ typedef struct {
  *******************************************************************************
  */
 
-state_machine_state_to_timer_map_t const m_machine_state_to_timer_map[] =
-{
-        {STATE_MACHINE_STATE_SOAKING, STATE_MACHINE_MSG_SOAK_TIME_REACHED},
-        {STATE_MACHINE_STATE_DWELL,   STATE_MACHINE_MSG_DWELL_TIME_REACHED},
-        {STATE_MACHINE_STATE_COOLING, STATE_MACHINE_MSG_HEATER_COOLING_TIMEOUT}
-};
+static size_t const m_state_map_size = sizeof(m_state_map) /
+                                       sizeof(m_state_map[0]);
 
 /*
  *******************************************************************************
@@ -74,11 +66,6 @@ state_machine_state_to_timer_map_t const m_machine_state_to_timer_map[] =
  *******************************************************************************
  */
 
-
-static QueueHandle_t m_state_machine_event_q = NULL;
-
-static TaskHandle_t m_state_machine_task_h = NULL;
-
 /*
  *******************************************************************************
  * Static Data Declarations                                                    *
@@ -87,12 +74,15 @@ static TaskHandle_t m_state_machine_task_h = NULL;
 
 static bool m_is_initialized = false;
 
+static QueueHandle_t m_state_machine_event_q = NULL;
+
+static TaskHandle_t m_state_machine_task_h = NULL;
+
 /*
  *******************************************************************************
  * Public Function Bodies                                                      *
  *******************************************************************************
  */
-
 
 bool state_machine_init(void) {
 
@@ -210,17 +200,13 @@ bool state_machine_send_event(state_machine_event_type_t const type,
 
 state_machine_msg_t state_machine_get_timeout_msg(state_machine_state_text_t const state)
 {
-        size_t const  state_to_timer_map_size =
-                sizeof(m_machine_state_to_timer_map) /
-                sizeof(m_machine_state_to_timer_map[0]);
-
         state_machine_msg_t message = STATE_MACHINE_MSG_COUNT;
         bool found = false;
         size_t i;
 
-        for (i = 0; ((state_to_timer_map_size > i) && (!found)); i++) {
-                if (state == m_machine_state_to_timer_map[i].text) {
-                        message = m_machine_state_to_timer_map[i].message;
+        for (i = 0; ((m_state_map_size > i) && (!found)); i++) {
+                if (state == m_state_map[i].text) {
+                        message = m_state_map[i].timeout_msg;
                         found = true;
                 }
         }
@@ -228,11 +214,44 @@ state_machine_msg_t state_machine_get_timeout_msg(state_machine_state_text_t con
         return message;
 }
 
+char * state_machine_get_state_string(state_machine_state_text_t const state)
+{
+        size_t i;
+        bool found = false;
+        char * p_string = NULL;
+
+        for (i = 0; m_state_map_size > i && (!found); i++) {
+                if (state == m_state_map[i].text) {
+                        p_string = m_state_map[i].string;
+                        found = true;
+                }
+        }
+
+        return p_string;
+}
+
 /*
  *******************************************************************************
  * Private Function Bodies                                                     *
  *******************************************************************************
  */
+
+state_machine_state_text_t state_machine_pointer_to_text(state_machine_state_t const state)
+{
+        bool found = false;
+        state_machine_state_text_t text = STATE_MACHINE_STATE_COUNT;
+        size_t i;
+
+        for (i = 0; ((STATE_MACHINE_STATE_COUNT > i) && (!found)); i++) {
+
+                if (state == m_state_map[i].function) {
+                        text = m_state_map[i].text;
+                        found = true;
+                }
+        }
+
+        return text;
+}
 
 /*
  *******************************************************************************

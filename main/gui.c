@@ -22,6 +22,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "freertos/FreeRTOS.h"
+#include "state_machine/states/state_machine_states.h"
 #include "state_machine/state_machine.h"
 #include "elegance4.c"
 #include "esp_log.h"

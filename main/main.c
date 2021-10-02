@@ -37,6 +37,7 @@
 #include "tp_spi.h"
 #include "xpt2046.h"
 #include "freertos/timers.h"
+#include "state_machine/states/state_machine_states.h"
 #include "state_machine/state_machine.h"
 #include "gui.h"
 #include "thermocouple.h"

@@ -83,6 +83,60 @@ typedef enum {
         STATE_MACHINE_STATE_COUNT
 } state_machine_state_text_t;
 
+typedef char * state_machine_state_string;
+
+typedef struct {
+        state_machine_state_text_t text;
+        state_machine_state_t function;
+        state_machine_state_string string;
+        state_machine_msg_t timeout_msg;
+} state_machine_state_map_t;
+
+static const state_machine_state_map_t m_state_map[STATE_MACHINE_STATE_COUNT] = {
+        {
+                STATE_MACHINE_STATE_IDLE,
+                state_machine_state_idle,
+                "Idle",
+                STATE_MACHINE_MSG_COUNT
+        },
+        {
+                STATE_MACHINE_STATE_HEATING,
+                state_machine_state_heating,
+                "Heating",
+                STATE_MACHINE_MSG_COUNT
+        },
+        {
+                STATE_MACHINE_STATE_SOAKING,
+                state_machine_state_soak,
+                "Soaking",
+                STATE_MACHINE_MSG_SOAK_TIME_REACHED
+        },
+        {
+                STATE_MACHINE_STATE_REFLOW,
+                state_machine_state_reflow,
+                "Reflow",
+                STATE_MACHINE_MSG_COUNT
+        },
+        {
+                STATE_MACHINE_STATE_DWELL,
+                state_machine_state_dwell,
+                "Dwell",
+                STATE_MACHINE_MSG_DWELL_TIME_REACHED
+        },
+        {
+                STATE_MACHINE_STATE_COOLING,
+                state_machine_state_cooling,
+                "Cooling",
+                STATE_MACHINE_MSG_HEATER_COOLING_TIMEOUT
+        },
+        {
+                STATE_MACHINE_STATE_ERROR,
+                state_machine_state_error,
+                "Error",
+                STATE_MACHINE_MSG_COUNT
+        }
+};
+
 /*
  *******************************************************************************
  * Public Constants                                                            *
@@ -109,5 +163,10 @@ bool state_machine_send_event(state_machine_event_type_t const type,
 
 state_machine_msg_t state_machine_get_timeout_msg(
                 state_machine_state_text_t const state);
+
+state_machine_state_text_t state_machine_pointer_to_text(
+        state_machine_state_t const state);
+
+char * state_machine_get_state_string(state_machine_state_text_t const state);
 
 #endif //STATE_MACHINE_H

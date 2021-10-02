@@ -23,8 +23,8 @@
 #include <assert.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "state_machine.h"
 #include "states/state_machine_states.h"
+#include "state_machine.h"
 
 /*
  *******************************************************************************
@@ -72,8 +72,6 @@ static state_machine_state_text_t m_state_machine_state = STATE_MACHINE_STATE_CO
  *******************************************************************************
  */
 
-
-
 bool state_machine_get_state(state_machine_state_text_t * const p_state)
 {
 
@@ -105,8 +103,6 @@ bool state_machine_set_state(state_machine_state_t const state)
         return success;
 }
 
-
-
 /*
  *******************************************************************************
  * Private Function Bodies                                                     *
@@ -118,7 +114,6 @@ bool state_machine_set_state(state_machine_state_t const state)
  * Interrupt Service Routines / Tasks / Thread Main Functions                  *
  *******************************************************************************
  */
-
 
 void state_machine_task(void * pvParameter)
 {

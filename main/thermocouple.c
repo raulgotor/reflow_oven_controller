@@ -27,6 +27,7 @@
 #include <freertos/task.h>
 
 #if TEMP_SIMULATION
+#include "state_machine/states/state_machine_states.h"
 #include "state_machine/state_machine.h"
 #include "reflow_profile.h"
 #endif

@@ -25,11 +25,11 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/timers.h"
 #include "reflow_profile.h"
+#include "state_machine/states/state_machine_states.h"
 #include "state_machine/state_machine.h"
 #include "state_machine/state_machine_task.h"
 #include "reflow_timer.h"
 #include "gui.h"
-#include "state_machine/states/state_machine_states.h"
 
 /*
  *******************************************************************************
@@ -59,20 +59,6 @@
 
 static bool clean_up_device(void);
 
-static void state_machine_state_idle(void);
-
-static void state_machine_state_heating(void);
-
-static void state_machine_state_soak(void);
-
-static void state_machine_state_reflow(void);
-
-static void state_machine_state_dwell(void);
-
-static void state_machine_state_cooling(void);
-
-static void state_machine_state_error(void);
-
 /*
  *******************************************************************************
  * Public Data Declarations                                                    *
@@ -85,16 +71,6 @@ static void state_machine_state_error(void);
  *******************************************************************************
  */
 
-static state_machine_state_map_t m_state_map[STATE_MACHINE_STATE_COUNT] = {
-        {STATE_MACHINE_STATE_IDLE, state_machine_state_idle},
-        {STATE_MACHINE_STATE_HEATING, state_machine_state_heating},
-        {STATE_MACHINE_STATE_SOAKING, state_machine_state_soak},
-        {STATE_MACHINE_STATE_REFLOW, state_machine_state_reflow},
-        {STATE_MACHINE_STATE_DWELL, state_machine_state_dwell},
-        {STATE_MACHINE_STATE_COOLING, state_machine_state_cooling},
-        {STATE_MACHINE_STATE_ERROR, state_machine_state_error}
-};
-
 /*
  *******************************************************************************
  * Public Function Bodies                                                      *
@@ -106,41 +82,7 @@ void state_machine_states_set_entry_point_state(void)
         state_machine_set_state(state_machine_state_idle);
 }
 
-state_machine_state_t state_machine_text_to_pointer(state_machine_state_text_t const text)
-{
-        state_machine_state_t state = NULL;
-
-        if (STATE_MACHINE_STATE_COUNT > text) {
-                state = m_state_map[text].function;
-        }
-
-        return state;
-}
-
-state_machine_state_text_t state_machine_pointer_to_text(state_machine_state_t const state)
-{
-        bool found = false;
-        state_machine_state_text_t text = STATE_MACHINE_STATE_COUNT;
-        size_t i;
-
-        for (i = 0; ((STATE_MACHINE_STATE_COUNT > i) && (!found)); i++) {
-
-                if (state == m_state_map[i].function) {
-                        text = m_state_map[i].text;
-                        found = true;
-                }
-        }
-
-        return text;
-}
-
-/*
- *******************************************************************************
- * Private Function Bodies                                                     *
- *******************************************************************************
- */
-
-static void state_machine_state_idle(void)
+void state_machine_state_idle(void)
 {
         state_machine_event_t event = {.type = STATE_MACHINE_EVENT_TYPE_COUNT};
         state_machine_state_text_t state;
@@ -181,7 +123,7 @@ static void state_machine_transition_abort()
         // Go to cooling down
 }
 
-static void state_machine_state_heating(void)
+void state_machine_state_heating(void)
 {
         ESP_LOGI(TAG, "State Heating");
 
@@ -226,9 +168,7 @@ static void state_machine_state_heating(void)
         }
 }
 
-
-
-static void state_machine_state_soak(void)
+void state_machine_state_soak(void)
 {
         ESP_LOGI(TAG, "State Soaking");
 
@@ -273,7 +213,7 @@ static void state_machine_state_soak(void)
         }
 }
 
-static void state_machine_state_reflow(void)
+void state_machine_state_reflow(void)
 {
         ESP_LOGI(TAG, "State Reflow");
 
@@ -321,7 +261,7 @@ static void state_machine_state_reflow(void)
         }
 }
 
-static void state_machine_state_dwell(void)
+void state_machine_state_dwell(void)
 {
         ESP_LOGI(TAG, "State Dwell");
 
@@ -368,7 +308,7 @@ static void state_machine_state_dwell(void)
         }
 }
 
-static void state_machine_state_cooling(void)
+void state_machine_state_cooling(void)
 {
         ESP_LOGI(TAG, "State Cooling");
 
@@ -412,7 +352,7 @@ static void state_machine_state_cooling(void)
         }
 }
 
-static void state_machine_state_error(void)
+void state_machine_state_error(void)
 {
         ESP_LOGI(TAG, "State Error");
 
@@ -442,6 +382,12 @@ static void state_machine_state_error(void)
         }
 
 }
+
+/*
+ *******************************************************************************
+ * Private Function Bodies                                                     *
+ *******************************************************************************
+ */
 
 static bool clean_up_device(void)
 {
