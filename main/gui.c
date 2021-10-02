@@ -86,23 +86,26 @@ static void gui_configure_tab_3(void);
  *******************************************************************************
  */
 
-lv_obj_t * mp_chrt_1;
-
+// Labels
 static lv_obj_t * m_p_temp_label;
 static lv_obj_t * p_lmeter;
 
 static lv_obj_t * p_start_button_label;
 
-
+// Buttons
 static lv_obj_t * m_p_start_button;
 //static lv_obj_t * m_p_stop_button;
 
+// Other objects
+static lv_obj_t * mp_chrt_1;
+static lv_obj_t * p_lmeter;
 static lv_obj_t * p_preheat_temp_roller;
 static lv_obj_t * p_preheat_time_roller;
 static lv_obj_t * p_reflow_temp_roller;
 static lv_obj_t * p_reflow_time_roller;
 static lv_obj_t * p_ramp_speed_roller;
 
+// Styles
 static lv_style_t m_style;
 static lv_style_t m_line_style;
 static lv_style_t m_big_style;
@@ -111,20 +114,21 @@ static lv_style_t m_style_tv_btn_bg;
 static lv_style_t m_style_tv_btn_rel;
 static lv_style_t m_style_tv_btn_pr;
 
-lv_obj_t * mp_tabview;
-lv_obj_t * mp_tab_1;
-lv_obj_t * mp_tab_2;
-lv_obj_t * m_p_tab_3;
+// Views
+static lv_obj_t * mp_tabview;
+static lv_obj_t * mp_tab_1;
+static lv_obj_t * mp_tab_2;
+static lv_obj_t * m_p_tab_3;
 
-uint16_t const m_menu_bar_height = 30;
-uint16_t const chartTickSpaceWidth = 20;
-uint16_t const marginLeft = 10;
-uint16_t const marginRight = 10;
-uint16_t const marginTop = 20;
-uint16_t const marginBottom = m_menu_bar_height + chartTickSpaceWidth + 10;
-
-lv_coord_t const btnVerticalSeparation = 10;
-int8_t const roller_margin = 10;
+// Dimensions
+static uint16_t const m_menu_bar_height = 30;
+static uint16_t const m_chart_tick_space_width = 20;
+static uint16_t const m_margin_left = 10;
+static uint16_t const m_margin_right = 10;
+static uint16_t const m_margin_top = 20;
+static uint16_t const m_margin_bottom = m_menu_bar_height + m_chart_tick_space_width + 10;
+static lv_coord_t const m_btn_vertical_separation = 10;
+static int8_t const m_roller_margin = 10;
 
 
 /*
@@ -338,7 +342,6 @@ static void gui_configure_styles(void)
 static void gui_configure_tab_1(void)
 {
 
-        lv_obj_t * p_profile_label;
         lv_obj_t * stop_button_label;
 
         // Start button
@@ -398,9 +401,9 @@ static void gui_configure_tab_2(void)
 
         mp_chrt_1 = lv_chart_create(mp_tab_2, NULL);
 
-        lv_chart_set_margin(mp_chrt_1, chartTickSpaceWidth);
-        //  lv_obj_set_pos(chrt1, marginLeft, marginTop);
-        //   lv_obj_set_size(chrt1,lv_obj_get_width(scr) - marginLeft - marginRight,lv_obj_get_height(scr) - marginTop - marginBottom);
+        lv_chart_set_margin(mp_chrt_1, m_chart_tick_space_width);
+        //  lv_obj_set_pos(chrt1, m_margin_left, m_margin_top);
+        //   lv_obj_set_size(chrt1,lv_obj_get_width(scr) - m_margin_left - m_margin_right,lv_obj_get_height(scr) - m_margin_top - m_margin_bottom);
 
         serie = lv_chart_add_series(mp_chrt_1, LV_COLOR_RED);
         serie2 = lv_chart_add_series(mp_chrt_1, LV_COLOR_GREEN);
@@ -500,11 +503,11 @@ static void gui_configure_tab_3(void)
                               "1\n2\n3\n4\n5",
                               LV_ROLLER_MODE_NORMAL);
 
-        lv_obj_align(p_preheat_temp_roller, m_p_tab_3, LV_ALIGN_IN_LEFT_MID, roller_margin, -30);
-        lv_obj_align(p_preheat_time_roller, p_preheat_temp_roller, LV_ALIGN_OUT_RIGHT_MID, roller_margin, 0);
-        lv_obj_align(p_reflow_temp_roller, p_preheat_time_roller, LV_ALIGN_OUT_RIGHT_MID, roller_margin, 0);
-        lv_obj_align(p_reflow_time_roller, p_reflow_temp_roller, LV_ALIGN_OUT_RIGHT_MID, roller_margin, 0);
-        lv_obj_align(p_ramp_speed_roller, p_reflow_time_roller, LV_ALIGN_OUT_RIGHT_MID, roller_margin, 0);
+        lv_obj_align(p_preheat_temp_roller, m_p_tab_3, LV_ALIGN_IN_LEFT_MID, m_roller_margin, -30);
+        lv_obj_align(p_preheat_time_roller, p_preheat_temp_roller, LV_ALIGN_OUT_RIGHT_MID, m_roller_margin, 0);
+        lv_obj_align(p_reflow_temp_roller, p_preheat_time_roller, LV_ALIGN_OUT_RIGHT_MID, m_roller_margin, 0);
+        lv_obj_align(p_reflow_time_roller, p_reflow_temp_roller, LV_ALIGN_OUT_RIGHT_MID, m_roller_margin, 0);
+        lv_obj_align(p_ramp_speed_roller, p_reflow_time_roller, LV_ALIGN_OUT_RIGHT_MID, m_roller_margin, 0);
 
         lv_obj_align(p_preheat_temp_label, p_preheat_temp_roller, LV_ALIGN_OUT_TOP_MID, 0, 0);
         lv_obj_align(p_degree_label_1, p_preheat_temp_roller, LV_ALIGN_OUT_BOTTOM_MID, 0, 0);
