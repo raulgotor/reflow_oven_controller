@@ -37,6 +37,7 @@
 #include "tp_spi.h"
 #include "xpt2046.h"
 #include "freertos/timers.h"
+#include "reflow_profile.h"
 #include "state_machine/states/state_machine_states.h"
 #include "state_machine/state_machine.h"
 #include "gui.h"
@@ -109,6 +110,8 @@ void app_main()
         // nvs_init();
 
         reflow_timer_init();
+
+        reflow_profile_init();
 
         ui_init();
 

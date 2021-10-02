@@ -21,11 +21,11 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "reflow_profile.h"
-
 #include <lvgl/src/lv_core/lv_style.h>
+
 #include "nvs.h"
 #include "nvs_flash.h"
+#include "reflow_profile.h"
 
 
 /*
@@ -35,12 +35,13 @@
  */
 
 #define REFLOW_PROFILE_DEFAULT_NAME                     "Sn60Pb40"
-#define REFLOW_PROFILE_DEFAULT_PREHEAT_TEMP_C           150
-#define REFLOW_PROFILE_DEFAULT_SOAK_TIME_S              50
-#define REFLOW_PROFILE_DEFAULT_REFLOW_TEMP_C            200
-#define REFLOW_PROFILE_DEFAULT_REFLOW_TIME_S            20
-#define REFLOW_PROFILE_DEFAULT_COOLING_TIME_S           100
+#define REFLOW_PROFILE_DEFAULT_PREHEAT_TEMP_C           170
+#define REFLOW_PROFILE_DEFAULT_SOAK_TIME_S              5 * 1000
+#define REFLOW_PROFILE_DEFAULT_REFLOW_TEMP_C            220
+#define REFLOW_PROFILE_DEFAULT_DWEEL_TIME_S             5 * 1000
+#define REFLOW_PROFILE_DEFAULT_COOLING_TIME_S           50 * 1000
 #define REFLOW_PROFILE_DEFAULT_RAMP_SPEED               100
+#define REFLOW_PROFILE_DEFAULT_COOLING_TEMP_C           30
 
 /*
  *******************************************************************************
@@ -86,7 +87,7 @@ static reflow_profile_t const m_reflow_profile_default = {
         REFLOW_PROFILE_DEFAULT_PREHEAT_TEMP_C,
         REFLOW_PROFILE_DEFAULT_SOAK_TIME_S,
         REFLOW_PROFILE_DEFAULT_REFLOW_TEMP_C,
-        REFLOW_PROFILE_DEFAULT_REFLOW_TIME_S,
+        REFLOW_PROFILE_DEFAULT_DWEEL_TIME_S,
         REFLOW_PROFILE_DEFAULT_COOLING_TIME_S,
         REFLOW_PROFILE_DEFAULT_RAMP_SPEED
 };
@@ -102,7 +103,12 @@ bool reflow_profile_init(void)
         bool success = !m_is_initialized;
 
         if (success) {
-                success = reflow_profile_load(&m_reflow_profile);
+
+                //TODO: change this once we have access to flash
+
+                m_reflow_profile = m_reflow_profile_default;
+
+                // success = reflow_profile_load(&m_reflow_profile);
         }
 
         return success;
@@ -111,7 +117,7 @@ bool reflow_profile_init(void)
 
 bool reflow_profile_save(reflow_profile_t const * const p_reflow_profile)
 {
-        bool success = (NULL != p_reflow_profile);
+        bool success = (NULL != p_reflow_profile || !m_is_initialized);
         bool needs_close = false;
         size_t required_size = sizeof(reflow_profile_t);
         nvs_handle_t nvs_handle;
@@ -156,7 +162,7 @@ bool reflow_profile_save(reflow_profile_t const * const p_reflow_profile)
 bool reflow_profile_load(reflow_profile_t * const p_reflow_profile)
 {
         size_t required_size = sizeof(reflow_profile_t);
-        bool success = (NULL != p_reflow_profile);
+        bool success = (NULL != p_reflow_profile || !m_is_initialized);
         bool needs_close = false;
         nvs_handle_t nvs_handle;
         esp_err_t result;
@@ -191,7 +197,7 @@ bool reflow_profile_load(reflow_profile_t * const p_reflow_profile)
 
 bool reflow_profile_use(reflow_profile_t const * const p_reflow_profile)
 {
-        bool success = (NULL != p_reflow_profile);
+        bool success = (NULL != p_reflow_profile || !m_is_initialized);
 
         if (success) {
                 // TODO: check for current state
@@ -210,14 +216,13 @@ bool reflow_profile_use(reflow_profile_t const * const p_reflow_profile)
 
 bool reflow_profile_get_current(reflow_profile_t * const p_reflow_profile) {
 
-        // TODO: change this to default parameter if load from flash not implemented
-        p_reflow_profile->preheat_temperature = 35;
-        p_reflow_profile->soak_time_ms = 5000;
-        p_reflow_profile->reflow_temperature = 70;
-        p_reflow_profile->dwell_time_ms = 5000;
-        p_reflow_profile->cooling_time_ms = 60;
-        p_reflow_profile->cooling_temperature = 25;
-        return true;
+        bool success =  (NULL != p_reflow_profile || !m_is_initialized);
+        // TODO: change this once we have a proper profile management
+        // if (success) {
+        *p_reflow_profile = m_reflow_profile;
+        // }
+
+        return success;
 }
 
 /*
