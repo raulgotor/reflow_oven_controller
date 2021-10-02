@@ -29,12 +29,21 @@
  *******************************************************************************
  */
 
+typedef struct {
+        state_machine_state_text_t text;
+        state_machine_state_t function;
+} state_machine_state_map_t;
+
 /*
  *******************************************************************************
  * Public Constants                                                            *
  *******************************************************************************
  */
 
+state_machine_state_text_t state_machine_pointer_to_text(
+        state_machine_state_t const state);
+
+state_machine_state_t state_machine_text_to_pointer(state_machine_state_text_t const text);
 
 /*
  *******************************************************************************

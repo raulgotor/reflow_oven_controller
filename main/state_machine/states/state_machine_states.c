@@ -85,6 +85,16 @@ static void state_machine_state_error(void);
  *******************************************************************************
  */
 
+static state_machine_state_map_t m_state_map[STATE_MACHINE_STATE_COUNT] = {
+        {STATE_MACHINE_STATE_IDLE, state_machine_state_idle},
+        {STATE_MACHINE_STATE_HEATING, state_machine_state_heating},
+        {STATE_MACHINE_STATE_SOAKING, state_machine_state_soak},
+        {STATE_MACHINE_STATE_REFLOW, state_machine_state_reflow},
+        {STATE_MACHINE_STATE_DWELL, state_machine_state_dwell},
+        {STATE_MACHINE_STATE_COOLING, state_machine_state_cooling},
+        {STATE_MACHINE_STATE_ERROR, state_machine_state_error}
+};
+
 /*
  *******************************************************************************
  * Public Function Bodies                                                      *
@@ -96,7 +106,33 @@ void state_machine_states_set_entry_point_state(void)
         state_machine_set_state(state_machine_state_idle);
 }
 
+state_machine_state_t state_machine_text_to_pointer(state_machine_state_text_t const text)
+{
+        state_machine_state_t state = NULL;
 
+        if (STATE_MACHINE_STATE_COUNT > text) {
+                state = m_state_map[text].function;
+        }
+
+        return state;
+}
+
+state_machine_state_text_t state_machine_pointer_to_text(state_machine_state_t const state)
+{
+        bool found = false;
+        state_machine_state_text_t text = STATE_MACHINE_STATE_COUNT;
+        size_t i;
+
+        for (i = 0; ((STATE_MACHINE_STATE_COUNT > i) && (!found)); i++) {
+
+                if (state == m_state_map[i].function) {
+                        text = m_state_map[i].text;
+                        found = true;
+                }
+        }
+
+        return text;
+}
 
 /*
  *******************************************************************************

@@ -64,20 +64,48 @@
 
 static state_machine_state_t m_pf_state = NULL;
 
+static state_machine_state_text_t m_state_machine_state = STATE_MACHINE_STATE_COUNT;
+
 /*
  *******************************************************************************
  * Public Function Bodies                                                      *
  *******************************************************************************
  */
 
-void state_machine_set_state(state_machine_state_t const state)
+
+
+bool state_machine_get_state(state_machine_state_text_t * const p_state)
 {
-        if (NULL == state) {
-                assert(0);
+
+        bool success = (NULL != p_state);
+
+        if (success) {
+                *p_state = m_state_machine_state;
         }
 
-        m_pf_state = state;
+        return success;
 }
+
+bool state_machine_set_state(state_machine_state_t const state)
+{
+        bool success = (NULL != state);
+        // Avoid state_text might be used uninitialized warning
+        state_machine_state_text_t state_text = STATE_MACHINE_STATE_COUNT;
+
+        if (success) {
+                state_text = state_machine_pointer_to_text(state);
+                success = (STATE_MACHINE_STATE_COUNT != state_text);
+        }
+
+        if (success) {
+                m_state_machine_state = state_text;
+                m_pf_state = state;
+        }
+
+        return success;
+}
+
+
 
 /*
  *******************************************************************************

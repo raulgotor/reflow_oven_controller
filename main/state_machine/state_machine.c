@@ -21,6 +21,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "esp_log.h"
 #include "state_machine.h"
 #include "state_machine_task.h"
 #include "states/state_machine_states.h"
@@ -34,6 +35,8 @@
  * Private Macros                                                              *
  *******************************************************************************
  */
+
+#define TAG                     __FILENAME__
 
 /*
  *******************************************************************************
@@ -71,9 +74,8 @@ state_machine_state_to_timer_map_t const m_machine_state_to_timer_map[] =
  *******************************************************************************
  */
 
-state_machine_state_text_t m_state_machine_state = STATE_MACHINE_STATE_COUNT;
 
-QueueHandle_t m_state_machine_event_q = NULL;
+static QueueHandle_t m_state_machine_event_q = NULL;
 
 static TaskHandle_t m_state_machine_task_h = NULL;
 
@@ -132,17 +134,6 @@ bool state_machine_init(void) {
 
 }
 
-bool state_machine_get_state(state_machine_state_text_t * const p_state)
-{
-        bool success = (NULL != p_state);
-
-        if (success) {
-                *p_state = m_state_machine_state;
-        }
-
-        return success;
-}
-
 bool state_machine_wait_for_event(uint32_t const time_ms,
                                   state_machine_event_t * const p_event)
 {
@@ -156,13 +147,14 @@ bool state_machine_wait_for_event(uint32_t const time_ms,
 
         if (success) {
                 result = xQueueReceive(m_state_machine_event_q,
-                                       (void *)p_event_buffer,
+                                       (void *)&p_event_buffer,
                                        time_ms);
 
                 success = ((pdPASS == result) && (NULL != p_event_buffer));
         }
 
         if (success) {
+                ESP_LOGI(TAG, "Got event %d", p_event_buffer->data.message);
                 *p_event = *p_event_buffer;
 
                 vPortFree(p_event_buffer);
