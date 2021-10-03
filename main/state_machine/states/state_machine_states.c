@@ -116,11 +116,12 @@ void state_machine_state_idle(void)
         }
 }
 
-static void state_machine_transition_abort()
+static void state_machine_transition_abort(void)
 {
-        ESP_LOGI(TAG, "State Abort");
 
-        // Go to cooling down
+        ESP_LOGI(TAG, "Transition Abort");
+        reflow_timer_stop_timer();
+        state_machine_set_state(state_machine_state_cooling);
 }
 
 void state_machine_state_heating(void)
@@ -151,19 +152,20 @@ void state_machine_state_heating(void)
                 switch (event.type) {
                 case STATE_MACHINE_EVENT_TYPE_ACTION:
                         if (STATE_MACHINE_ACTION_ABORT == event.data.user_action) {
+                                state_machine_transition_abort();
                                 state_machine_set_state(state_machine_state_cooling);
                         }
                         break;
-                        case STATE_MACHINE_EVENT_TYPE_MESSAGE:
-                                if (STATE_MACHINE_MSG_HEATER_PREHEAT_TARGET_REACHED == event.data.message) {
-                                        state_machine_set_state(state_machine_state_soak);
-                                } else if (STATE_MACHINE_MSG_HEATER_ERROR ==
-                                event.data.message) {
-                                        state_machine_set_state(state_machine_state_error);
-                                }
-                                break;
-                                default:
-                                        assert(0);
+                case STATE_MACHINE_EVENT_TYPE_MESSAGE:
+                        if (STATE_MACHINE_MSG_HEATER_PREHEAT_TARGET_REACHED == event.data.message) {
+                                state_machine_set_state(state_machine_state_soak);
+                        } else if (STATE_MACHINE_MSG_HEATER_ERROR ==
+                                   event.data.message) {
+                                state_machine_set_state(state_machine_state_error);
+                        }
+                        break;
+                default:
+                        assert(0);
                 }
         }
 }
@@ -197,6 +199,7 @@ void state_machine_state_soak(void)
         switch (event.type) {
         case STATE_MACHINE_EVENT_TYPE_ACTION:
                 if (STATE_MACHINE_ACTION_ABORT == event.data.user_action) {
+                        state_machine_transition_abort();
                         state_machine_set_state(state_machine_state_cooling);
                 }
                 break;
@@ -245,6 +248,7 @@ void state_machine_state_reflow(void)
         switch (event.type) {
         case STATE_MACHINE_EVENT_TYPE_ACTION:
                 if (STATE_MACHINE_ACTION_ABORT == event.data.user_action) {
+                        state_machine_transition_abort();
                         state_machine_set_state(state_machine_state_cooling);
                 }
                 break;
@@ -292,11 +296,13 @@ void state_machine_state_dwell(void)
         switch (event.type) {
         case STATE_MACHINE_EVENT_TYPE_ACTION:
                 if (STATE_MACHINE_ACTION_ABORT == event.data.user_action) {
+                        state_machine_transition_abort();
                         state_machine_set_state(state_machine_state_cooling);
                 }
                 break;
         case STATE_MACHINE_EVENT_TYPE_MESSAGE:
                 if (STATE_MACHINE_MSG_DWELL_TIME_REACHED == event.data.message) {
+                        state_machine_transition_abort();
                         state_machine_set_state(state_machine_state_cooling);
                 } else if (STATE_MACHINE_MSG_HEATER_ERROR ==
                            event.data.message) {

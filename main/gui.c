@@ -594,6 +594,7 @@ static void ui_button_event(lv_obj_t * p_object, lv_event_t event)
                 case STATE_MACHINE_STATE_HEATING:
                 case STATE_MACHINE_STATE_SOAKING:
                 case STATE_MACHINE_STATE_REFLOW:
+                case STATE_MACHINE_STATE_DWELL:
                         state_machine_event_data.user_action = STATE_MACHINE_ACTION_ABORT;
                         break;
 
@@ -604,8 +605,6 @@ static void ui_button_event(lv_obj_t * p_object, lv_event_t event)
                 state_machine_send_event(STATE_MACHINE_EVENT_TYPE_ACTION,
                                          state_machine_event_data,
                                          portMAX_DELAY);
-
-
         }
 }
 
