@@ -136,37 +136,6 @@ bool reflow_profile_init(void)
         return success;
 }
 
-static bool reflow_profile_slot_in_use(uint8_t * const p_slot)
-{
-        bool success = (NULL != p_slot && m_is_initialized);
-        esp_err_t result;
-
-        if (success) {
-                result = nvs_get_u8(m_nvs_h,
-                                    REFLOW_PROFILE_NVS_CURRENT_PROFILE_SLOT,
-                                    p_slot);
-        }
-
-        if (success && ESP_OK == result) {
-                success = true;
-        } else if (success && ESP_ERR_NOT_FOUND == result) {
-                result = nvs_set_i8(m_nvs_h,
-                                    REFLOW_PROFILE_NVS_CURRENT_PROFILE_SLOT,
-                                    REFLOW_PROFILE_DEFAULT_SLOT);
-
-                if (ESP_OK == result) {
-                        success = true;
-                        *p_slot = REFLOW_PROFILE_DEFAULT_SLOT;
-                } else {
-                        assert(0);
-                }
-        } else {
-                assert(0);
-        }
-
-        return success;
-}
-
 bool reflow_profile_save(reflow_profile_t const * const p_reflow_profile)
 {
         bool success = ((NULL != p_reflow_profile) && (m_is_initialized));
