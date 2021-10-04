@@ -105,6 +105,8 @@ static reflow_profile_t const m_reflow_profile_default = {
         REFLOW_PROFILE_DEFAULT_RAMP_SPEED,
 };
 
+static nvs_handle_t m_nvs_h;
+
 /*
  *******************************************************************************
  * Public Function Bodies                                                      *
@@ -254,10 +256,6 @@ bool reflow_profile_load(char const * const p_name,
 bool reflow_profile_use(reflow_profile_t const * const p_reflow_profile)
 {
         bool success = (NULL != p_reflow_profile && m_is_initialized);
-
-        if (success) {
-                // TODO: check for current state
-        }
 
         if (success) {
                 success = reflow_profile_validate(p_reflow_profile);
