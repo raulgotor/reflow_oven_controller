@@ -62,7 +62,7 @@ bool reflow_profile_init(void);
 
 bool reflow_profile_save(reflow_profile_t const * const p_reflow_profile);
 
-bool reflow_profile_load(reflow_profile_t * const p_reflow_profile);
+bool reflow_profile_load(char const * const p_name, reflow_profile_t * const p_reflow_profile);
 
 bool reflow_profile_use(reflow_profile_t const * const p_reflow_profile);
 

@@ -136,6 +136,7 @@ bool ui_init(void)
 {
         state_machine_state_text_t state = STATE_MACHINE_STATE_COUNT;
         bool success = state_machine_get_state(&state);
+        reflow_profile_t profile;
 
         if (success) {
                 gui_configure_styles();
@@ -149,7 +150,6 @@ bool ui_init(void)
 
         if (success) {
                 //TODO: remove once we have a proper profile loading on boot
-                reflow_profile_t profile;
                 reflow_profile_get_current(&profile);
                 gui_configure_for_profile(profile);
         }

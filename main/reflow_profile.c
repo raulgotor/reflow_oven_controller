@@ -33,15 +33,22 @@
  * Private Macros                                                              *
  *******************************************************************************
  */
+#define REFLOW_PROFILE_DEFAULT_SLOT                     (0)
+#define REFLOW_PROFILE_NVS_NAMESPACE                    "reflow_profile"
+#define REFLOW_PROFILE_NVS_INITIALIZED                  "initialized"
+#define REFLOW_PROFILE_NVS_CURRENT_PROFILE_SLOT         "current_profile_slot"
+#define REFLOW_PROFILE_NVS_PROFILE                      "reflow_profile"
+
+
 
 #define REFLOW_PROFILE_DEFAULT_NAME                     "Sn60Pb40"
-#define REFLOW_PROFILE_DEFAULT_PREHEAT_TEMP_C           170
-#define REFLOW_PROFILE_DEFAULT_SOAK_TIME_S              5 * 1000
-#define REFLOW_PROFILE_DEFAULT_REFLOW_TEMP_C            220
-#define REFLOW_PROFILE_DEFAULT_DWEEL_TIME_S             5 * 1000
-#define REFLOW_PROFILE_DEFAULT_COOLING_TIME_S           50 * 1000
-#define REFLOW_PROFILE_DEFAULT_RAMP_SPEED               100
-#define REFLOW_PROFILE_DEFAULT_COOLING_TEMP_C           30
+#define REFLOW_PROFILE_DEFAULT_PREHEAT_TEMP_C           (170)
+#define REFLOW_PROFILE_DEFAULT_SOAK_TIME_S              (5 * 1000)
+#define REFLOW_PROFILE_DEFAULT_REFLOW_TEMP_C            (220)
+#define REFLOW_PROFILE_DEFAULT_DWEEL_TIME_S             (5 * 1000)
+#define REFLOW_PROFILE_DEFAULT_COOLING_TIME_S           (50 * 1000)
+#define REFLOW_PROFILE_DEFAULT_RAMP_SPEED               (100)
+#define REFLOW_PROFILE_DEFAULT_COOLING_TEMP_C           (30)
 
 /*
  *******************************************************************************
@@ -64,6 +71,12 @@
 static bool reflow_profile_validate(reflow_profile_t const * const p_reflow_profile);
 
 static void reflow_profile_use_defaults(void);
+
+static bool is_profile_nvs_initialized(void);
+
+static bool initialize_profile_nvs(void);
+
+static void print_namespace_contents(void);
 
 /*
  *******************************************************************************
@@ -104,79 +117,122 @@ bool reflow_profile_init(void)
 
         if (success) {
 
-                //TODO: change this once we have access to flash
+                if (!is_profile_nvs_initialized()) {
+                        success = initialize_profile_nvs();
+                }
+        }
 
-                m_reflow_profile = m_reflow_profile_default;
+        // TODO: surround with debug macro
+        print_namespace_contents();
 
-                // success = reflow_profile_load(&m_reflow_profile);
+        if (success) {
+                m_is_initialized = true;
+                success = reflow_profile_load(m_reflow_profile_default.name,
+                                              &m_reflow_profile);
         }
 
         return success;
+}
 
+static bool reflow_profile_slot_in_use(uint8_t * const p_slot)
+{
+        bool success = (NULL != p_slot && m_is_initialized);
+        esp_err_t result;
+
+        if (success) {
+                result = nvs_get_u8(m_nvs_h,
+                                    REFLOW_PROFILE_NVS_CURRENT_PROFILE_SLOT,
+                                    p_slot);
+        }
+
+        if (success && ESP_OK == result) {
+                success = true;
+        } else if (success && ESP_ERR_NOT_FOUND == result) {
+                result = nvs_set_i8(m_nvs_h,
+                                    REFLOW_PROFILE_NVS_CURRENT_PROFILE_SLOT,
+                                    REFLOW_PROFILE_DEFAULT_SLOT);
+
+                if (ESP_OK == result) {
+                        success = true;
+                        *p_slot = REFLOW_PROFILE_DEFAULT_SLOT;
+                } else {
+                        assert(0);
+                }
+        } else {
+                assert(0);
+        }
+
+        return success;
 }
 
 bool reflow_profile_save(reflow_profile_t const * const p_reflow_profile)
 {
-        bool success = (NULL != p_reflow_profile || !m_is_initialized);
+        bool success = ((NULL != p_reflow_profile) && (m_is_initialized));
         bool needs_close = false;
         size_t required_size = sizeof(reflow_profile_t);
-        nvs_handle_t nvs_handle;
         esp_err_t result;
+
         if (success) {
-                result = nvs_open("storage", NVS_READWRITE, &nvs_handle);
+                success = reflow_profile_validate(p_reflow_profile);
+        }
+
+        if (success) {
+                result = nvs_open(REFLOW_PROFILE_NVS_NAMESPACE,
+                                  NVS_READWRITE,
+                                  &m_nvs_h);
 
                 success = (ESP_OK == result);
         }
 
         if (success) {
                 needs_close = true;
-
-                result = nvs_get_blob(nvs_handle, "profile", NULL, &required_size);
-
-                // TODO:
-                // if (result != ESP_OK && result != ESP_ERR_NVS_NOT_FOUND) { return result; }
-
-                success = ((ESP_OK == result) &&
-                           (sizeof(reflow_profile_t) == required_size));
-        }
-
-        if (success) {
-                result = nvs_set_blob(nvs_handle, "profile", &p_reflow_profile, required_size);
+                result = nvs_set_blob(m_nvs_h,
+                                      p_reflow_profile->name,
+                                      &p_reflow_profile,
+                                      required_size);
 
                 success = (ESP_OK == result);
         }
 
         if (success) {
-                result = nvs_commit(nvs_handle);
+                result = nvs_commit(m_nvs_h);
 
                 success = (ESP_OK == result);
         }
 
         if (needs_close) {
-                nvs_close(nvs_handle);
+                nvs_close(m_nvs_h);
         }
 
         return success;
 }
 
-bool reflow_profile_load(reflow_profile_t * const p_reflow_profile)
+bool reflow_profile_load(char const * const p_name,
+                         reflow_profile_t * const p_reflow_profile)
 {
         size_t required_size = sizeof(reflow_profile_t);
-        bool success = (NULL != p_reflow_profile || !m_is_initialized);
+        bool success = ((NULL != p_reflow_profile) && (m_is_initialized));
         bool needs_close = false;
         nvs_handle_t nvs_handle;
         esp_err_t result;
         reflow_profile_t reflow_profile_buffer;
 
         if (success) {
-                result = nvs_open("storage", NVS_READWRITE, &nvs_handle);
+                success = reflow_profile_validate(p_reflow_profile);
+        }
+
+        if (success) {
+                result = nvs_open(REFLOW_PROFILE_NVS_NAMESPACE,
+                                  NVS_READONLY,
+                                  &nvs_handle);
 
                 success = (ESP_OK == result);
         }
 
         if (success) {
                 needs_close = true;
-                result = nvs_get_blob(nvs_handle, "profile",
+                result = nvs_get_blob(nvs_handle,
+                                      p_name,
                                       &reflow_profile_buffer,
                                       &required_size);
 
@@ -197,7 +253,7 @@ bool reflow_profile_load(reflow_profile_t * const p_reflow_profile)
 
 bool reflow_profile_use(reflow_profile_t const * const p_reflow_profile)
 {
-        bool success = (NULL != p_reflow_profile || !m_is_initialized);
+        bool success = (NULL != p_reflow_profile && m_is_initialized);
 
         if (success) {
                 // TODO: check for current state
@@ -216,11 +272,11 @@ bool reflow_profile_use(reflow_profile_t const * const p_reflow_profile)
 
 bool reflow_profile_get_current(reflow_profile_t * const p_reflow_profile) {
 
-        bool success =  (NULL != p_reflow_profile || !m_is_initialized);
-        // TODO: change this once we have a proper profile management
-        // if (success) {
-        *p_reflow_profile = m_reflow_profile;
-        // }
+        bool success =  ((NULL != p_reflow_profile) && (m_is_initialized));
+
+        if (success) {
+                *p_reflow_profile = m_reflow_profile;
+        }
 
         return success;
 }
@@ -234,6 +290,7 @@ bool reflow_profile_get_current(reflow_profile_t * const p_reflow_profile) {
 static bool reflow_profile_validate(reflow_profile_t const * const p_reflow_profile)
 {
         bool success = true;
+        // TODO: implementation required
         return success;
 }
 
@@ -241,6 +298,97 @@ static void reflow_profile_use_defaults(void)
 {
         m_reflow_profile = m_reflow_profile_default;
 }
+
+static bool is_profile_nvs_initialized(void)
+{
+        uint8_t initialized = 0;
+        bool needs_close = false;
+        bool success;
+        esp_err_t result = nvs_open(REFLOW_PROFILE_NVS_NAMESPACE,
+                                    NVS_READWRITE,
+                                    &m_nvs_h);
+
+        success = (ESP_OK == result);
+
+        if (success) {
+                result = nvs_get_u8(m_nvs_h,
+                            REFLOW_PROFILE_NVS_INITIALIZED,
+                            &initialized);
+                printf("Restart counter = %d\n", initialized);
+
+                needs_close = true;
+        }
+
+        if ((ESP_OK == result) && (1 == initialized)) {
+                success = true;
+        } else if ((ESP_ERR_NOT_FOUND == result) || (0 == initialized)) {
+                success = false;
+        } else {
+                assert(0);
+        }
+
+        if (needs_close) {
+                nvs_close(m_nvs_h);
+        }
+
+        return success;
+}
+
+static bool initialize_profile_nvs(void)
+{
+        bool needs_close = false;
+        size_t const profile_size = sizeof(m_reflow_profile_default);
+        esp_err_t result = nvs_open(REFLOW_PROFILE_NVS_NAMESPACE,
+                                    NVS_READWRITE, &m_nvs_h);
+        bool success;
+
+
+        success = (ESP_OK == result);
+
+        if (success) {
+                needs_close = true;
+                result = nvs_set_u8(m_nvs_h,
+                                    REFLOW_PROFILE_NVS_INITIALIZED,
+                                    1);
+                success = (ESP_OK == result);
+        }
+
+        if (success) {
+                result = nvs_set_blob(m_nvs_h,
+                                      m_reflow_profile_default.name,
+                                      &m_reflow_profile_default,
+                                      profile_size);
+
+                success = (ESP_OK == result);
+        }
+
+        if (needs_close) {
+                result = nvs_commit(m_nvs_h);
+
+                if (ESP_OK != result){
+                        assert(result && "Couldn't commit changes to nvs");
+                }
+                nvs_close(m_nvs_h);
+        }
+
+        return success;
+}
+
+
+static void print_namespace_contents(void)
+{
+        nvs_entry_info_t info;
+        nvs_iterator_t iterator = nvs_entry_find("nvs",
+                                                 REFLOW_PROFILE_NVS_NAMESPACE,
+                                                 NVS_TYPE_ANY);
+        while (NULL != iterator) {
+                nvs_entry_info(iterator, &info);
+                iterator = nvs_entry_next(iterator);
+                printf("key '%s', type '%d' \n", info.key, info.type);
+        }
+
+}
+
 
 
 /*
