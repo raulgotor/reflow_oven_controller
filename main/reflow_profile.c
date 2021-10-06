@@ -22,11 +22,11 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <lvgl/src/lv_core/lv_style.h>
+#include "freertos/FreeRTOS.h"
 
 #include "nvs.h"
 #include "nvs_flash.h"
 #include "reflow_profile.h"
-
 
 /*
  *******************************************************************************
@@ -103,6 +103,8 @@ static reflow_profile_t const m_reflow_profile_default = {
 };
 
 static nvs_handle_t m_nvs_h;
+
+static bool add_fake_profiles(void);
 
 /*
  *******************************************************************************
@@ -232,6 +234,36 @@ bool reflow_profile_load(char const * const p_name,
         return success;
 }
 
+bool reflow_profile_delete(char const * const p_name)
+{
+        bool success = (m_is_initialized) && (NULL != p_name);
+        bool needs_close = false;
+        nvs_handle_t nvs_handle;
+        esp_err_t result;
+
+        if (success) {
+                result = nvs_open(REFLOW_PROFILE_NVS_NAMESPACE,
+                                  NVS_READWRITE,
+                                  &nvs_handle);
+
+                success = (ESP_OK == result);
+        }
+
+        if (success) {
+                needs_close = true;
+                result = nvs_erase_key(nvs_handle, p_name);
+
+                success = (ESP_OK == result);
+        }
+
+        if (needs_close) {
+                nvs_close(nvs_handle);
+        }
+
+        return success;
+}
+
+
 bool reflow_profile_use(reflow_profile_t const * const p_reflow_profile)
 {
         bool success = ((NULL != p_reflow_profile) && (m_is_initialized));
@@ -247,13 +279,86 @@ bool reflow_profile_use(reflow_profile_t const * const p_reflow_profile)
         return success;
 }
 
-bool reflow_profile_get_current(reflow_profile_t * const p_reflow_profile) {
+bool reflow_profile_get_current(reflow_profile_t * const p_reflow_profile)
+{
 
-        bool success =  ((NULL != p_reflow_profile) && (m_is_initialized));
+        bool success = ((NULL != p_reflow_profile) && (m_is_initialized));
 
         if (success) {
                 *p_reflow_profile = m_reflow_profile;
         }
+
+        return success;
+}
+/*!
+ * @brief
+ *
+ * @warning this function only frees memory if it was allocated and then a failure
+ *          occurs afterwards. Otherwise, its caller responsibility to free it
+ * @param p_profiles
+ * @param p_size
+ * @return
+ */
+bool reflow_profile_get_profiles_list(char ** p_profiles, size_t * const p_size)
+{
+        bool success = ((NULL != p_profiles) && (NULL != p_size));
+        char * buffer = NULL;
+        bool needs_to_free_on_fail = true;
+        size_t counter = 0;
+        nvs_iterator_t iterator = nvs_entry_find("nvs",
+                                                 REFLOW_PROFILE_NVS_NAMESPACE,
+                                                 NVS_TYPE_ANY);
+        nvs_entry_info_t info;
+
+
+        while ((NULL != iterator) && (success)) {
+                nvs_entry_info(iterator, &info);
+                iterator = nvs_entry_next(iterator);
+                // adding space for the name but also for the \n character
+                counter += strlen(info.key) + 1;
+
+                printf("key '%s', type '%d' \n", info.key, info.type);
+        }
+
+        if (success) {
+                // adding space for the \0 terminator
+                counter++;
+
+                iterator = nvs_entry_find("nvs",
+                                          REFLOW_PROFILE_NVS_NAMESPACE,
+                                          NVS_TYPE_ANY);
+
+                buffer = pvPortMalloc(counter);
+
+                success = (NULL != buffer);
+        }
+
+        if (success) {
+                needs_to_free_on_fail = true;
+                strcpy(buffer, "");
+        }
+
+        while ((NULL != iterator) && (success)) {
+                nvs_entry_info(iterator, &info);
+                iterator = nvs_entry_next(iterator);
+                strcat(buffer, info.key);
+                strcat(buffer, "\n");
+        }
+
+        if (!success || (0 == strlen(buffer))) {
+                *p_size = 0;
+                success = false;
+                vPortFree(buffer);
+                buffer = NULL;
+        }
+
+        if (success) {
+                *p_profiles = buffer;
+                *p_size = counter;
+        }
+
+
+        printf("%s %d\n", buffer, counter);
 
         return success;
 }
@@ -350,7 +455,6 @@ static bool initialize_profile_nvs(void)
                                     NVS_READWRITE, &m_nvs_h);
         bool success;
 
-
         success = (ESP_OK == result);
 
         if (success) {
@@ -373,10 +477,32 @@ static bool initialize_profile_nvs(void)
         if (needs_close) {
                 result = nvs_commit(m_nvs_h);
 
-                if (ESP_OK != result){
+                if (ESP_OK != result) {
                         assert(result && "Couldn't commit changes to nvs");
                 }
                 nvs_close(m_nvs_h);
+        }
+
+        return success;
+}
+
+static bool add_fake_profiles(void)
+{
+        esp_err_t result = nvs_open(REFLOW_PROFILE_NVS_NAMESPACE,
+                                    NVS_READWRITE, &m_nvs_h);
+
+        reflow_profile_t fake_profile = m_reflow_profile_default;
+        char fakename[10] = "fake_namex";
+        uint8_t i = 0;
+        bool success;
+
+        success = (ESP_OK == result);
+
+        for (i = 0; (10 > i) && (success); i++) {
+                fakename[9] = '0' + i;
+                fake_profile.name = fakename;
+                reflow_profile_save(&fake_profile);
+                success = (ESP_OK == result);
         }
 
         return success;

@@ -111,7 +111,7 @@ void app_main()
 
         reflow_profile_init();
 
-        ui_init();
+        gui_init();
 
         state_machine_init();
 

@@ -75,8 +75,12 @@ bool reflow_profile_save(reflow_profile_t const * const p_reflow_profile);
 
 bool reflow_profile_load(char const * const p_name, reflow_profile_t * const p_reflow_profile);
 
+bool reflow_profile_delete(char const * const p_name);
+
 bool reflow_profile_use(reflow_profile_t const * const p_reflow_profile);
 
 bool reflow_profile_get_current(reflow_profile_t * const p_reflow_profile);
+
+bool reflow_profile_get_profiles_list(char ** p_profiles, size_t * const p_size);
 
 #endif //REFLOW_PROFILE_H
