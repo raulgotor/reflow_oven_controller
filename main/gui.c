@@ -41,6 +41,18 @@
 
 #define TAG                                     __FILENAME__
 
+#define BUTTON_TEXT_NEW                         "New"
+#define BUTTON_TEXT_EDIT                        "Edit"
+#define BUTTON_TEXT_DELETE                      "Delete"
+#define BUTTON_TEXT_CANCEL                      "Cancel"
+#define BUTTON_TEXT_START                       "Start"
+#define BUTTON_TEXT_STOP                        "Stop"
+
+#define LABEL_TEXT_PROFILE                      "Profile:"
+
+#define MESSAGE_TEXT_DELETE_PROFILE             "Are you sure you want to delete this profile?"
+
+
 /*
  *******************************************************************************
  * Data types                                                                  *
@@ -59,9 +71,13 @@
  *******************************************************************************
  */
 
-static void ui_button_event(lv_obj_t * p_object, lv_event_t event);
+static void gui_button_event(lv_obj_t * p_object, lv_event_t event);
 
 static void ui_roller_event(lv_obj_t * p_object, lv_event_t event);
+
+static void gui_tab_profile_delete_event(lv_obj_t * const p_object, lv_event_t const event);
+
+static void gui_tab_profile_delete_msg_box_event(lv_obj_t * const p_object, lv_event_t const event);
 
 static void update_rollers();
 
@@ -95,9 +111,16 @@ static lv_obj_t * m_p_temp_label;
 static lv_obj_t * p_profile_label;
 static lv_obj_t * p_state_label;
 static lv_obj_t * p_start_button_label;
+static lv_obj_t * p_dropdown_label;
+static lv_obj_t * p_new_button_label;
+static lv_obj_t * p_edit_button_label;
+static lv_obj_t * p_delete_button_label;
 
 // Buttons
 static lv_obj_t * m_p_start_button;
+static lv_obj_t * p_new_button;
+static lv_obj_t * p_edit_button;
+static lv_obj_t * p_delete_button;
 //static lv_obj_t * m_p_stop_button;
 
 // Other objects
@@ -108,6 +131,8 @@ static lv_obj_t * p_preheat_time_roller;
 static lv_obj_t * p_reflow_temp_roller;
 static lv_obj_t * p_reflow_time_roller;
 static lv_obj_t * p_ramp_speed_roller;
+static lv_obj_t * p_dropdown;
+static lv_obj_t * p_msg_box;
 
 // Styles
 static lv_style_t m_style;
@@ -122,13 +147,14 @@ static lv_style_t m_style_tv_btn_pr;
 static lv_obj_t * mp_tabview;
 static lv_obj_t * mp_tab_1;
 static lv_obj_t * mp_tab_2;
-static lv_obj_t * m_p_tab_3;
+static lv_obj_t * mp_tab_3;
 static lv_obj_t * mp_tab_4;
 
 // Dimensions
 static uint16_t const m_chart_tick_space_width = 20;
 static int8_t const m_roller_margin = 10;
 
+static const char * m_msg_box_delete_options[] = {"Delete", "Cancel", ""};
 
 /*
  *******************************************************************************
@@ -136,7 +162,7 @@ static int8_t const m_roller_margin = 10;
  *******************************************************************************
  */
 
-bool ui_init(void)
+bool gui_init(void)
 {
         state_machine_state_text_t state = STATE_MACHINE_STATE_COUNT;
         bool success = state_machine_get_state(&state);
@@ -147,7 +173,7 @@ bool ui_init(void)
                 gui_configure_main_scr();
                 gui_configure_tab_1();
                 gui_configure_tab_2();
-                gui_configure_tab_3();
+                //gui_configure_tab_3();
                 gui_configure_tab_4();
                 // TODO: change this for a INIT_STATE macro pointing to IDLE
                 gui_configure_buttons_for_state(STATE_MACHINE_STATE_IDLE);
@@ -157,20 +183,19 @@ bool ui_init(void)
                 //TODO: remove once we have a proper profile loading on boot
                 reflow_profile_get_current(&profile);
                 gui_configure_for_profile(profile);
+
+
+                gui_update_profiles_dropdown();
+
         }
 
         return success;
 }
 
 
-
 bool gui_configure_main_scr(void)
 {
-
-
-        //lv_point_t const points[] = {{0,   210}, {320, 210}};
         lv_obj_t * p_scr = lv_scr_act();
-        lv_obj_t * p_separation_line;
         lv_theme_t * p_theme;
 
         lv_task_create(label_refresher_task, 10, LV_TASK_PRIO_MID, NULL);
@@ -184,8 +209,8 @@ bool gui_configure_main_scr(void)
 
         mp_tab_1 = lv_tabview_add_tab(mp_tabview, "Main");
         mp_tab_2 = lv_tabview_add_tab(mp_tabview, "Graph");
-        m_p_tab_3 = lv_tabview_add_tab(mp_tabview, "Profile");
-        mp_tab_4 = lv_tabview_add_tab(mp_tabview, "Profiles");
+        //mp_tab_3 = lv_tabview_add_tab(mp_tabview, "Profile");
+        mp_tab_4 = lv_tabview_add_tab(mp_tabview, "Profile");
 
         lv_tabview_set_style(mp_tabview, LV_TABVIEW_STYLE_BTN_BG, &m_style_tv_btn_bg);
         lv_tabview_set_style(mp_tabview, LV_TABVIEW_STYLE_INDIC, &lv_style_plain);
@@ -195,12 +220,6 @@ bool gui_configure_main_scr(void)
         lv_tabview_set_style(mp_tabview, LV_TABVIEW_STYLE_BTN_TGL_PR, &m_style_tv_btn_pr);
 
         lv_tabview_set_btns_pos(mp_tabview, LV_TABVIEW_BTNS_POS_TOP);
-
-        // Separation line
-
-      //  separation_line = lv_line_create(scr, NULL);
-       // lv_line_set_points(separation_line, points, 2);
-        //lv_line_set_style(separation_line, LV_LINE_STYLE_MAIN, &m_line_style);
 
         return false;
 }
@@ -246,11 +265,11 @@ bool gui_configure_splash_src()
         return false;
 }
 
-void gui_configure_buttons_for_state(state_machine_state_text_t const state) {
+void gui_configure_buttons_for_state(state_machine_state_text_t const state)
+{
+        char const * const p_state_str = state_machine_get_state_string(state);
 
-        char * state_str = state_machine_get_state_string(state);
-
-        if (NULL == state_str) {
+        if (NULL == p_state_str) {
                 // Code style exception for readability
                 return;
         }
@@ -261,10 +280,12 @@ void gui_configure_buttons_for_state(state_machine_state_text_t const state) {
         case STATE_MACHINE_STATE_SOAKING:
         case STATE_MACHINE_STATE_REFLOW:
         case STATE_MACHINE_STATE_DWELL:
-                lv_label_set_text(p_start_button_label, LV_SYMBOL_STOP "Stop");
+                lv_label_set_text(p_start_button_label,
+                                  LV_SYMBOL_STOP BUTTON_TEXT_STOP);
                 break;
         case STATE_MACHINE_STATE_IDLE:
-                lv_label_set_text(p_start_button_label, LV_SYMBOL_PLAY "Start");
+                lv_label_set_text(p_start_button_label,
+                                  LV_SYMBOL_PLAY BUTTON_TEXT_START);
                 break;
         case STATE_MACHINE_STATE_COOLING:
                 break;
@@ -272,16 +293,53 @@ void gui_configure_buttons_for_state(state_machine_state_text_t const state) {
                 break;
         }
 
-        lv_label_set_text(p_state_label, state_str);
-
+        lv_label_set_text(p_state_label, p_state_str);
 }
 
-void gui_configure_for_profile(reflow_profile_t const profile) {
+void gui_configure_for_profile(reflow_profile_t const profile)
+{
 
-        int16_t meter_value_max = (int16_t) profile.reflow_temperature;
+        int16_t const meter_value_max = (int16_t)profile.reflow_temperature;
+        int16_t const meter_angle = 270;
+        int16_t const meter_line_count = 54;
 
         lv_lmeter_set_range(p_lmeter, 0, meter_value_max);
-        lv_lmeter_set_scale(p_lmeter, 270, 54);
+        lv_lmeter_set_scale(p_lmeter, meter_angle, meter_line_count);
+}
+
+void gui_update_profiles_dropdown(void)
+{
+        char * profiles_list = NULL;
+        uint32_t counter = 0;
+        size_t profiles_size;
+        size_t i;
+        bool needs_free = false;
+        bool success = reflow_profile_get_profiles_list(&profiles_list,
+                                                        &profiles_size);
+        if (success) {
+                needs_free = true;
+                lv_ddlist_set_options(p_dropdown, profiles_list);
+
+                for (i = 0; profiles_size > i; i++) {
+                        if ('\n' == profiles_list[i]) {
+                                counter++;
+                        }
+                }
+        }
+
+        if (needs_free) {
+                vPortFree(profiles_list);
+                profiles_list = NULL;
+        }
+
+        if (success) {
+                // Deactivate delete button if there is only one profile left
+                if (1 >= counter) {
+                        lv_btn_set_state(p_delete_button, LV_BTN_STATE_INA);
+                } else {
+                        lv_btn_set_state(p_delete_button, LV_BTN_STATE_REL);
+                }
+        }
 }
 
 /*
@@ -290,32 +348,24 @@ void gui_configure_for_profile(reflow_profile_t const profile) {
  *******************************************************************************
  */
 
-static void label_refresher_task(void * p)
+static void label_refresher_task(void * p_parameters)
 {
-        char str[10];
+        char temperature_str[10];
         int16_t temperature;
+        bool success;
 
         lv_chart_refresh(mp_chrt_1);
 
-        thermocouple_get_temperature(0, &temperature);
-        sprintf(str, "%dº", temperature);
-        lv_label_set_text(m_p_temp_label, str);
-        lv_obj_align(m_p_temp_label, p_lmeter, LV_ALIGN_CENTER, 0, 0);
-        lv_lmeter_set_value(p_lmeter, temperature);
+        success = thermocouple_get_temperature(0, &temperature);
 
-
-        if (lv_obj_get_screen(m_p_temp_label)) {
-
+        if (success) {
+                sprintf(temperature_str, "%dº", temperature);
+                lv_label_set_text(m_p_temp_label, temperature_str);
+                lv_lmeter_set_value(p_lmeter, temperature);
         }
-}
 
-static void update_rollers()
-{
-        //    lv_roller_set_selected(preheat_temp_roller, my_profile.preheat_temp - MIN_PREHEAT_TEMP, false);
-        //   lv_roller_set_selected(preheat_time_roller, (my_profile.preheat_time - MIN_PREHEAT_TIME) / 10, false);
-        //  lv_roller_set_selected(reflow_temp_roller, my_profile.reflow_temp - MIN_REFLOW_TEMP, false);
-        // lv_roller_set_selected(reflow_time_roller, (my_profile.reflow_time - MIN_REFLOW_TIME) / 10, false);
-        //lv_roller_set_selected(ramp_speed_roller, my_profile.ramp_speed, false);
+        //TODO: this belongs to somewhere else
+        lv_obj_align(m_p_temp_label, p_lmeter, LV_ALIGN_CENTER, 0, 0);
 }
 
 static void gui_configure_styles(void)
@@ -368,7 +418,7 @@ static void gui_configure_tab_1(void)
         m_p_start_button = lv_btn_create(mp_tab_1, NULL);
         lv_obj_set_pos(m_p_start_button, 10, 10);
         lv_obj_set_size(m_p_start_button, 100, 100);
-        lv_obj_set_event_cb(m_p_start_button, ui_button_event);
+        lv_obj_set_event_cb(m_p_start_button, gui_button_event);
 
         // Labels
 
@@ -446,71 +496,71 @@ static void gui_configure_tab_3(void)
         lv_obj_t * p_seconds_label_1;
         lv_obj_t * p_seconds_label_2;
         lv_obj_t * p_degrees_seconds_label;
-        
+
         // Labels configuration: units
 
-        p_degree_label_1 = lv_label_create(m_p_tab_3, NULL);
+        p_degree_label_1 = lv_label_create(mp_tab_3, NULL);
         lv_label_set_text(p_degree_label_1, "ºC");
 
-        p_degree_label_2 = lv_label_create(m_p_tab_3, p_degree_label_1);
+        p_degree_label_2 = lv_label_create(mp_tab_3, p_degree_label_1);
 
-        p_seconds_label_1 = lv_label_create(m_p_tab_3, NULL);
+        p_seconds_label_1 = lv_label_create(mp_tab_3, NULL);
         lv_label_set_text(p_seconds_label_1, "s.");
 
-        p_seconds_label_2 = lv_label_create(m_p_tab_3, p_seconds_label_1);
+        p_seconds_label_2 = lv_label_create(mp_tab_3, p_seconds_label_1);
 
-        p_degrees_seconds_label = lv_label_create(m_p_tab_3, NULL);
+        p_degrees_seconds_label = lv_label_create(mp_tab_3, NULL);
         lv_label_set_text(p_degrees_seconds_label, "ºC/s.");
 
         // Labels configuration: parameters
 
-        p_preheat_temp_label = lv_label_create(m_p_tab_3, NULL);
+        p_preheat_temp_label = lv_label_create(mp_tab_3, NULL);
         lv_label_set_text(p_preheat_temp_label, "Preheat");
 
-        p_preheat_time_label = lv_label_create(m_p_tab_3, NULL);
+        p_preheat_time_label = lv_label_create(mp_tab_3, NULL);
         lv_label_set_text(p_preheat_time_label, "Time");
 
-        p_reflow_temp_label = lv_label_create(m_p_tab_3, NULL);
+        p_reflow_temp_label = lv_label_create(mp_tab_3, NULL);
         lv_label_set_text(p_reflow_temp_label, "Reflow");
 
-        p_reflow_time_label = lv_label_create(m_p_tab_3, p_preheat_time_label);
+        p_reflow_time_label = lv_label_create(mp_tab_3, p_preheat_time_label);
 
-        p_speed_label = lv_label_create(m_p_tab_3, NULL);
+        p_speed_label = lv_label_create(mp_tab_3, NULL);
         lv_label_set_text(p_speed_label, "Speed");
 
         // Rollers configuration
 
-        p_preheat_temp_roller = lv_roller_create(m_p_tab_3, NULL);
+        p_preheat_temp_roller = lv_roller_create(mp_tab_3, NULL);
         lv_roller_set_options(p_preheat_temp_roller,
                               "140\n141\n142\n143\n144\n145\n146\n147\n148\n149\n150\n151\n152\n153\n154\n155\n156\n157\n158\n159\n160\n161\n162\n163\n164\n165\n166\n167\n168\n169\n170\n171\n172\n173\n174\n175\n176\n177\n178\n179\n180\n181\n182\n183\n184\n185\n186\n187\n188\n189\n190\n191\n192\n193\n194\n195\n196\n197\n198\n199\n200",
                               LV_ROLLER_MODE_NORMAL);
         lv_obj_set_event_cb(p_preheat_temp_roller, ui_roller_event);
 
-        p_preheat_time_roller = lv_roller_create(m_p_tab_3, NULL);
+        p_preheat_time_roller = lv_roller_create(mp_tab_3, NULL);
         lv_roller_set_options(p_preheat_time_roller,
                               "0\n10\n20\n30\n40\n50\n60\n70\n80\n90\n100\n110\n120",
                               LV_ROLLER_MODE_NORMAL);
         lv_obj_set_event_cb(p_preheat_time_roller, ui_roller_event);
 
-        p_reflow_temp_roller = lv_roller_create(m_p_tab_3, NULL);
+        p_reflow_temp_roller = lv_roller_create(mp_tab_3, NULL);
         lv_roller_set_options(p_reflow_temp_roller,
                               "200\n201\n202\n203\n204\n205\n206\n207\n208\n209\n210\n211\n212\n213\n214\n215\n216\n217\n218\n219\n220\n221\n222\n223\n224\n225\n226\n227\n228\n229\n230",
                               LV_ROLLER_MODE_NORMAL);
         lv_obj_set_event_cb(p_reflow_temp_roller, ui_roller_event);
 
 
-        p_reflow_time_roller = lv_roller_create(m_p_tab_3, NULL);
+        p_reflow_time_roller = lv_roller_create(mp_tab_3, NULL);
         lv_roller_set_options(p_reflow_time_roller,
                               "30\n40\n50\n60\n70\n80\n90\n100\n110\n120",
                               LV_ROLLER_MODE_NORMAL);
         lv_obj_set_event_cb(p_reflow_time_roller, ui_roller_event);
 
-        p_ramp_speed_roller = lv_roller_create(m_p_tab_3, NULL);
+        p_ramp_speed_roller = lv_roller_create(mp_tab_3, NULL);
         lv_roller_set_options(p_ramp_speed_roller,
                               "1\n2\n3\n4\n5",
                               LV_ROLLER_MODE_NORMAL);
 
-        lv_obj_align(p_preheat_temp_roller, m_p_tab_3, LV_ALIGN_IN_LEFT_MID, m_roller_margin, -30);
+        lv_obj_align(p_preheat_temp_roller, mp_tab_3, LV_ALIGN_IN_LEFT_MID, m_roller_margin, -30);
         lv_obj_align(p_preheat_time_roller, p_preheat_temp_roller, LV_ALIGN_OUT_RIGHT_MID, m_roller_margin, 0);
         lv_obj_align(p_reflow_temp_roller, p_preheat_time_roller, LV_ALIGN_OUT_RIGHT_MID, m_roller_margin, 0);
         lv_obj_align(p_reflow_time_roller, p_reflow_temp_roller, LV_ALIGN_OUT_RIGHT_MID, m_roller_margin, 0);
@@ -538,28 +588,50 @@ static void gui_configure_tab_3(void)
 
 static void gui_configure_tab_4(void)
 {
-        lv_obj_t * table = lv_table_create(mp_tab_1, NULL);
+        uint8_t const button_width = 85;
+        uint8_t const button_height = 50;
 
-        lv_table_set_cell_value(table, 0, 0, "Name");
-        lv_table_set_cell_value(table, 1, 0, "Apple");
-        lv_table_set_cell_value(table, 2, 0, "Banana");
-        lv_table_set_cell_value(table, 3, 0, "Lemon");
-        lv_table_set_cell_value(table, 4, 0, "Grape");
-        lv_table_set_cell_value(table, 5, 1, "Melon");
-        lv_table_set_cell_value(table, 6, 0, "Peach");
-        lv_table_set_cell_value(table, 7, 0, "Nuts");
+        // Configure buttons
 
-        lv_obj_align(p_preheat_temp_roller, mp_tab_4, LV_ALIGN_IN_LEFT_MID, m_roller_margin, -30);
+        p_new_button = lv_btn_create(mp_tab_4, NULL);
+        lv_obj_set_size(p_new_button, button_width, button_height);
 
-        p_preheat_temp_roller = lv_roller_create(mp_tab_4, NULL);
-        lv_roller_set_options(p_preheat_temp_roller,
-                              "140\n141\n142\n143\n144\n145\n146\n147\n148\n149\n150\n151\n152\n153\n154\n155\n156\n157\n158\n159\n160\n161\n162\n163\n164\n165\n166\n167\n168\n169\n170\n171\n172\n173\n174\n175\n176\n177\n178\n179\n180\n181\n182\n183\n184\n185\n186\n187\n188\n189\n190\n191\n192\n193\n194\n195\n196\n197\n198\n199\n200",
-                              LV_ROLLER_MODE_NORMAL);
+        p_edit_button = lv_btn_create(mp_tab_4, NULL);
+        lv_obj_set_size(p_edit_button, button_width, button_height);
 
+        p_delete_button = lv_btn_create(mp_tab_4, NULL);
+        lv_obj_set_size(p_delete_button, button_width, button_height);
 
-        lv_obj_set_height(table, 200);
-        lv_obj_align(table, mp_tab_4, LV_ALIGN_IN_LEFT_MID, m_roller_margin, -30);
+        // Add labels
 
+        p_new_button_label = lv_label_create(p_new_button, NULL);
+        lv_label_set_text(p_new_button_label, LV_SYMBOL_OK BUTTON_TEXT_NEW);
+        p_edit_button_label = lv_label_create(p_edit_button, NULL);
+        lv_label_set_text(p_edit_button_label, LV_SYMBOL_EDIT BUTTON_TEXT_EDIT);
+        p_delete_button_label = lv_label_create(p_delete_button, NULL);
+        lv_label_set_text(p_delete_button_label, LV_SYMBOL_TRASH BUTTON_TEXT_DELETE);
+
+        // Configure dropdown
+
+        p_dropdown_label = lv_label_create(mp_tab_4, NULL);
+        lv_label_set_text(p_dropdown_label, LABEL_TEXT_PROFILE);
+
+        p_dropdown = lv_ddlist_create(mp_tab_4, NULL);
+
+        lv_ddlist_set_sb_mode(p_dropdown, LV_SB_MODE_ON);
+        lv_ddlist_set_fix_height(p_dropdown, 150);
+        lv_obj_align(p_dropdown, p_dropdown, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
+
+        // Layout
+
+        lv_obj_align(p_edit_button, mp_tab_4, LV_ALIGN_IN_BOTTOM_MID, 0, -10);
+        lv_obj_align(p_new_button, p_edit_button, LV_ALIGN_OUT_LEFT_MID, -15, 0);
+        lv_obj_align(p_delete_button, p_edit_button, LV_ALIGN_OUT_RIGHT_MID, 15, 0);
+
+        // Set button event callbacks
+        //lv_obj_set_event_cb(p_new_button, gui_tab_profile_delete_event);
+        //lv_obj_set_event_cb(p_edit_button, gui_tab_profile_delete_event);
+        lv_obj_set_event_cb(p_delete_button, gui_tab_profile_delete_event);
 }
 
 /*
@@ -568,37 +640,46 @@ static void gui_configure_tab_4(void)
  *******************************************************************************
  */
 
-static void ui_roller_event(lv_obj_t * p_object, lv_event_t event)
+static void gui_tab_profile_delete_event(lv_obj_t * const p_object,
+                                         lv_event_t const event)
 {
-        uint16_t const selection = lv_roller_get_selected(p_object);
+        lv_coord_t const msg_box_width = 200;
 
-        reflow_profile_t my_profile;
+        if (LV_EVENT_CLICKED == event) {
 
-
-        if (p_object == p_preheat_temp_roller) {
-                my_profile.preheat_temperature = selection + REFLOW_PROFILE_PREHEAT_TEMP_MIN_C;
-
-        } else if (p_object == p_preheat_time_roller) {
-                my_profile.soak_time_s = selection * 10 + REFLOW_PROFILE_SOAK_TIME_MIN_S;
-        } else if (p_object == p_reflow_temp_roller) {
-                my_profile.reflow_temperature = selection + REFLOW_PROFILE_REFLOW_TEMP_MIN_C;
-        } else if (p_object == p_reflow_time_roller) {
-                my_profile.dwell_time_s = selection * 10 + REFLOW_PROFILE_DWELL_TIME_MIN_S;
-        } else if (p_object == p_ramp_speed_roller) {
-                my_profile.ramp_speed = selection;
+                p_msg_box = lv_mbox_create(mp_tab_4, NULL);
+                lv_mbox_set_text(p_msg_box, MESSAGE_TEXT_DELETE_PROFILE);
+                lv_mbox_add_btns(p_msg_box, m_msg_box_delete_options);
+                lv_obj_set_width(p_msg_box, msg_box_width);
+                lv_obj_set_event_cb(p_msg_box, gui_tab_profile_delete_msg_box_event);
+                lv_obj_align(p_msg_box, NULL, LV_ALIGN_CENTER, 0, 0); /*Align to the corner*/
         }
 
-        //profileUpdater();
 
-        //lv_chart_set_points(chrt1, serie2, prof1array);
-
-        //save_profile();
-
-
-        lv_chart_refresh(mp_chrt_1);
 }
 
-static void ui_button_event(lv_obj_t * p_object, lv_event_t event)
+static void gui_tab_profile_delete_msg_box_event(lv_obj_t * const p_object,
+                                                 lv_event_t const event)
+{
+        char buffer[16];
+        size_t buffer_size = sizeof(buffer);
+
+        if (event == LV_EVENT_VALUE_CHANGED) {
+
+                char const * text = lv_mbox_get_active_btn_text(p_object);
+
+                if (0 == strcmp(text, BUTTON_TEXT_DELETE)) {
+                        lv_ddlist_get_selected_str(p_dropdown, buffer, buffer_size);
+                        (void)reflow_profile_delete(buffer);
+                        gui_update_profiles_dropdown();
+                        lv_mbox_start_auto_close(p_msg_box,0);
+                } else if (0 == strcmp(text, BUTTON_TEXT_CANCEL)) {
+                        lv_mbox_start_auto_close(p_msg_box,0);
+                }
+        }
+}
+
+static void gui_button_event(lv_obj_t * p_object, lv_event_t event)
 {
         state_machine_data_t state_machine_event_data;
         state_machine_state_text_t state;
