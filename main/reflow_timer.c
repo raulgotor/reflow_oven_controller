@@ -100,13 +100,14 @@ bool reflow_timer_init(void)
         return success;
 }
 
-bool reflow_timer_start_timer(uint32_t const period,
+bool reflow_timer_start_timer(uint32_t const period_s,
                               state_machine_state_text_t const state)
 {
+        uint32_t const period_ticks = pdMS_TO_TICKS(period_s * 1000);
         BaseType_t result;
         bool success;
 
-        result = xTimerChangePeriod(m_reflow_timer_h, pdMS_TO_TICKS(period), portMAX_DELAY);
+        result = xTimerChangePeriod(m_reflow_timer_h, pdMS_TO_TICKS(period_ticks), portMAX_DELAY);
 
         success  = (pdPASS == result);
 
@@ -117,7 +118,7 @@ bool reflow_timer_start_timer(uint32_t const period,
 
         if (success) {
                 m_reflow_timer_state = state;
-                ESP_LOGI(TAG, "Timer started for %d ticks", pdMS_TO_TICKS(period));
+                ESP_LOGI(TAG, "Timer started for %d ticks", pdMS_TO_TICKS(period_ticks));
 
         }
 

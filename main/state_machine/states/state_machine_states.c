@@ -185,7 +185,7 @@ void state_machine_state_soak(void)
         }
 
         if (success) {
-                success = reflow_timer_start_timer(profile.soak_time_ms, state);
+                success = reflow_timer_start_timer(profile.soak_time_s, state);
         }
 
         if (success) {
@@ -280,7 +280,7 @@ void state_machine_state_dwell(void)
         }
 
         if (success) {
-                success = reflow_timer_start_timer(profile.dwell_time_ms, state);
+                success = reflow_timer_start_timer(profile.dwell_time_s, state);
         }
 
         if (success) {

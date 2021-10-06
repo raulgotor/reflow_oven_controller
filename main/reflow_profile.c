@@ -33,22 +33,18 @@
  * Private Macros                                                              *
  *******************************************************************************
  */
-#define REFLOW_PROFILE_DEFAULT_SLOT                     (0)
+
 #define REFLOW_PROFILE_NVS_NAMESPACE                    "reflow_profile"
 #define REFLOW_PROFILE_NVS_INITIALIZED                  "initialized"
-#define REFLOW_PROFILE_NVS_CURRENT_PROFILE_SLOT         "current_profile_slot"
-#define REFLOW_PROFILE_NVS_PROFILE                      "reflow_profile"
-
-
 
 #define REFLOW_PROFILE_DEFAULT_NAME                     "Sn60Pb40"
 #define REFLOW_PROFILE_DEFAULT_PREHEAT_TEMP_C           (170)
-#define REFLOW_PROFILE_DEFAULT_SOAK_TIME_S              (5 * 1000)
+#define REFLOW_PROFILE_DEFAULT_SOAK_TIME_S              (5)
 #define REFLOW_PROFILE_DEFAULT_REFLOW_TEMP_C            (220)
-#define REFLOW_PROFILE_DEFAULT_DWEEL_TIME_S             (5 * 1000)
-#define REFLOW_PROFILE_DEFAULT_COOLING_TIME_S           (50 * 1000)
-#define REFLOW_PROFILE_DEFAULT_RAMP_SPEED               (100)
+#define REFLOW_PROFILE_DEFAULT_DWELL_TIME_S             (5)
+#define REFLOW_PROFILE_DEFAULT_COOLING_TIME_S           (100)
 #define REFLOW_PROFILE_DEFAULT_COOLING_TEMP_C           (30)
+#define REFLOW_PROFILE_DEFAULT_RAMP_SPEED               (10)
 
 /*
  *******************************************************************************
@@ -68,7 +64,7 @@
  *******************************************************************************
  */
 
-static bool reflow_profile_validate(reflow_profile_t const * const p_reflow_profile);
+static bool is_valid_reflow_profile(reflow_profile_t const * const p_reflow_profile);
 
 static void reflow_profile_use_defaults(void);
 
@@ -100,8 +96,9 @@ static reflow_profile_t const m_reflow_profile_default = {
         REFLOW_PROFILE_DEFAULT_PREHEAT_TEMP_C,
         REFLOW_PROFILE_DEFAULT_SOAK_TIME_S,
         REFLOW_PROFILE_DEFAULT_REFLOW_TEMP_C,
-        REFLOW_PROFILE_DEFAULT_DWEEL_TIME_S,
+        REFLOW_PROFILE_DEFAULT_DWELL_TIME_S,
         REFLOW_PROFILE_DEFAULT_COOLING_TEMP_C,
+        REFLOW_PROFILE_DEFAULT_COOLING_TIME_S,
         REFLOW_PROFILE_DEFAULT_RAMP_SPEED,
 };
 
@@ -140,11 +137,11 @@ bool reflow_profile_save(reflow_profile_t const * const p_reflow_profile)
 {
         bool success = ((NULL != p_reflow_profile) && (m_is_initialized));
         bool needs_close = false;
-        size_t required_size = sizeof(reflow_profile_t);
+        size_t const required_size = sizeof(reflow_profile_t);
         esp_err_t result;
 
         if (success) {
-                success = reflow_profile_validate(p_reflow_profile);
+                success = is_valid_reflow_profile(p_reflow_profile);
         }
 
         if (success) {
@@ -178,18 +175,27 @@ bool reflow_profile_save(reflow_profile_t const * const p_reflow_profile)
         return success;
 }
 
+/*!
+ * @brief Load a reflow profile from NVS to a `reflow_profile_t` object
+ *
+ * @param[in]       p_name              Name of the profile to load
+ * @param[out]      p_reflow_profile    Pointer to object where to store the
+ *                                      profile at
+ *
+ * @return          bool                Result of the operation
+ */
 bool reflow_profile_load(char const * const p_name,
                          reflow_profile_t * const p_reflow_profile)
 {
         size_t required_size = sizeof(reflow_profile_t);
-        bool success = ((NULL != p_reflow_profile) && (m_is_initialized));
+        bool success = m_is_initialized;
         bool needs_close = false;
         nvs_handle_t nvs_handle;
         esp_err_t result;
         reflow_profile_t reflow_profile_buffer;
 
         if (success) {
-                success = reflow_profile_validate(p_reflow_profile);
+                success = (NULL != p_reflow_profile) && (NULL != p_name);
         }
 
         if (success) {
@@ -212,6 +218,10 @@ bool reflow_profile_load(char const * const p_name,
         }
 
         if (success) {
+                success = is_valid_reflow_profile(&reflow_profile_buffer);
+        }
+
+        if (success) {
                 *p_reflow_profile = reflow_profile_buffer;
         }
 
@@ -224,10 +234,10 @@ bool reflow_profile_load(char const * const p_name,
 
 bool reflow_profile_use(reflow_profile_t const * const p_reflow_profile)
 {
-        bool success = (NULL != p_reflow_profile && m_is_initialized);
+        bool success = ((NULL != p_reflow_profile) && (m_is_initialized));
 
         if (success) {
-                success = reflow_profile_validate(p_reflow_profile);
+                success = is_valid_reflow_profile(p_reflow_profile);
         }
 
         if (success) {
@@ -253,11 +263,42 @@ bool reflow_profile_get_current(reflow_profile_t * const p_reflow_profile) {
  * Private Function Bodies                                                     *
  *******************************************************************************
  */
-
-static bool reflow_profile_validate(reflow_profile_t const * const p_reflow_profile)
+static bool is_valid_reflow_profile(reflow_profile_t const * const p_reflow_profile)
 {
-        bool success = true;
-        // TODO: implementation required
+        bool success = false;
+
+        if ((REFLOW_PROFILE_REFLOW_TEMP_MAX_C >=
+                                    p_reflow_profile->reflow_temperature) &&
+            (REFLOW_PROFILE_REFLOW_TEMP_MIN_C <=
+                                    p_reflow_profile->reflow_temperature) &&
+            (REFLOW_PROFILE_PREHEAT_TEMP_MAX_C >=
+                                   p_reflow_profile->preheat_temperature) &&
+            (REFLOW_PROFILE_REFLOW_TEMP_MIN_C <=
+                                   p_reflow_profile->preheat_temperature) &&
+            (REFLOW_PROFILE_COOLING_TEMP_MAX_C >=
+                                   p_reflow_profile->cooling_temperature) &&
+            (REFLOW_PROFILE_COOLING_TEMP_MIN_C <=
+                                   p_reflow_profile->cooling_temperature) &&
+            (REFLOW_PROFILE_DWELL_TIME_MAX_S >=
+                                         p_reflow_profile->dwell_time_s) &&
+            (REFLOW_PROFILE_DWELL_TIME_MIN_S <=
+                                         p_reflow_profile->dwell_time_s) &&
+            (REFLOW_PROFILE_SOAK_TIME_MAX_S >=
+                                          p_reflow_profile->soak_time_s) &&
+            (REFLOW_PROFILE_SOAK_TIME_MIN_S <=
+                                          p_reflow_profile->soak_time_s) &&
+            (REFLOW_PROFILE_COOLING_TIME_MAX_S >=
+                                          p_reflow_profile->cooling_time_s) &&
+            (REFLOW_PROFILE_COOLING_TIME_MIN_S <=
+                                          p_reflow_profile->cooling_time_s) &&
+            (REFLOW_PROFILE_RAMP_SPEED_MAX_CS >=
+                                          p_reflow_profile->ramp_speed) &&
+            (REFLOW_PROFILE_RAMP_SPEED_MIN_CS <=
+                                              p_reflow_profile->ramp_speed) &&
+            (REFLOW_PROFILE_NAME_LEN_MAX >= strlen(p_reflow_profile->name)))
+        {
+                success = true;
+        }
         return success;
 }
 
@@ -341,7 +382,6 @@ static bool initialize_profile_nvs(void)
         return success;
 }
 
-
 static void print_namespace_contents(void)
 {
         nvs_entry_info_t info;
@@ -355,8 +395,6 @@ static void print_namespace_contents(void)
         }
 
 }
-
-
 
 /*
  *******************************************************************************

@@ -75,6 +75,9 @@ static void gui_configure_tab_2(void);
 
 static void gui_configure_tab_3(void);
 
+static void gui_configure_tab_4(void);
+
+
 /*
  *******************************************************************************
  * Public Data Declarations                                                    *
@@ -120,6 +123,7 @@ static lv_obj_t * mp_tabview;
 static lv_obj_t * mp_tab_1;
 static lv_obj_t * mp_tab_2;
 static lv_obj_t * m_p_tab_3;
+static lv_obj_t * mp_tab_4;
 
 // Dimensions
 static uint16_t const m_chart_tick_space_width = 20;
@@ -144,6 +148,7 @@ bool ui_init(void)
                 gui_configure_tab_1();
                 gui_configure_tab_2();
                 gui_configure_tab_3();
+                gui_configure_tab_4();
                 // TODO: change this for a INIT_STATE macro pointing to IDLE
                 gui_configure_buttons_for_state(STATE_MACHINE_STATE_IDLE);
         }
@@ -180,6 +185,7 @@ bool gui_configure_main_scr(void)
         mp_tab_1 = lv_tabview_add_tab(mp_tabview, "Main");
         mp_tab_2 = lv_tabview_add_tab(mp_tabview, "Graph");
         m_p_tab_3 = lv_tabview_add_tab(mp_tabview, "Profile");
+        mp_tab_4 = lv_tabview_add_tab(mp_tabview, "Profiles");
 
         lv_tabview_set_style(mp_tabview, LV_TABVIEW_STYLE_BTN_BG, &m_style_tv_btn_bg);
         lv_tabview_set_style(mp_tabview, LV_TABVIEW_STYLE_INDIC, &lv_style_plain);
@@ -530,6 +536,32 @@ static void gui_configure_tab_3(void)
 
 }
 
+static void gui_configure_tab_4(void)
+{
+        lv_obj_t * table = lv_table_create(mp_tab_1, NULL);
+
+        lv_table_set_cell_value(table, 0, 0, "Name");
+        lv_table_set_cell_value(table, 1, 0, "Apple");
+        lv_table_set_cell_value(table, 2, 0, "Banana");
+        lv_table_set_cell_value(table, 3, 0, "Lemon");
+        lv_table_set_cell_value(table, 4, 0, "Grape");
+        lv_table_set_cell_value(table, 5, 1, "Melon");
+        lv_table_set_cell_value(table, 6, 0, "Peach");
+        lv_table_set_cell_value(table, 7, 0, "Nuts");
+
+        lv_obj_align(p_preheat_temp_roller, mp_tab_4, LV_ALIGN_IN_LEFT_MID, m_roller_margin, -30);
+
+        p_preheat_temp_roller = lv_roller_create(mp_tab_4, NULL);
+        lv_roller_set_options(p_preheat_temp_roller,
+                              "140\n141\n142\n143\n144\n145\n146\n147\n148\n149\n150\n151\n152\n153\n154\n155\n156\n157\n158\n159\n160\n161\n162\n163\n164\n165\n166\n167\n168\n169\n170\n171\n172\n173\n174\n175\n176\n177\n178\n179\n180\n181\n182\n183\n184\n185\n186\n187\n188\n189\n190\n191\n192\n193\n194\n195\n196\n197\n198\n199\n200",
+                              LV_ROLLER_MODE_NORMAL);
+
+
+        lv_obj_set_height(table, 200);
+        lv_obj_align(table, mp_tab_4, LV_ALIGN_IN_LEFT_MID, m_roller_margin, -30);
+
+}
+
 /*
  *******************************************************************************
  * Interrupt Service Routines / Tasks / Thread Main Functions                  *
@@ -544,14 +576,14 @@ static void ui_roller_event(lv_obj_t * p_object, lv_event_t event)
 
 
         if (p_object == p_preheat_temp_roller) {
-                my_profile.preheat_temperature = selection + REFLOW_PROFILE_PREHEAT_TEMPERATURE_MIN;
+                my_profile.preheat_temperature = selection + REFLOW_PROFILE_PREHEAT_TEMP_MIN_C;
 
         } else if (p_object == p_preheat_time_roller) {
-                my_profile.soak_time_ms = selection * 10 + REFLOW_PROFILE_SOAK_TIME_MIN;
+                my_profile.soak_time_s = selection * 10 + REFLOW_PROFILE_SOAK_TIME_MIN_S;
         } else if (p_object == p_reflow_temp_roller) {
-                my_profile.reflow_temperature = selection + REFLOW_PROFILE_REFLOW_TEMPERATURE_MIN;
+                my_profile.reflow_temperature = selection + REFLOW_PROFILE_REFLOW_TEMP_MIN_C;
         } else if (p_object == p_reflow_time_roller) {
-                my_profile.dwell_time_ms = selection * 10 + REFLOW_PROFILE_REFLOW_TIME_MIN;
+                my_profile.dwell_time_s = selection * 10 + REFLOW_PROFILE_DWELL_TIME_MIN_S;
         } else if (p_object == p_ramp_speed_roller) {
                 my_profile.ramp_speed = selection;
         }

@@ -23,11 +23,22 @@
  *******************************************************************************
  */
 
-#define REFLOW_PROFILE_PREHEAT_TEMPERATURE_MIN          50
-#define REFLOW_PROFILE_SOAK_TIME_MIN                    10
-#define REFLOW_PROFILE_REFLOW_TEMPERATURE_MIN           70
-#define REFLOW_PROFILE_REFLOW_TIME_MIN                  10
+#define REFLOW_PROFILE_PREHEAT_TEMP_MAX_C                 (220)
+#define REFLOW_PROFILE_PREHEAT_TEMP_MIN_C                 (50)
+#define REFLOW_PROFILE_SOAK_TIME_MIN_S                    (5)
+#define REFLOW_PROFILE_SOAK_TIME_MAX_S                    (300)
+#define REFLOW_PROFILE_REFLOW_TEMP_MAX_C                  (280)
+#define REFLOW_PROFILE_REFLOW_TEMP_MIN_C                  (70)
+#define REFLOW_PROFILE_DWELL_TIME_MIN_S                   (5)
+#define REFLOW_PROFILE_DWELL_TIME_MAX_S                   (100)
+#define REFLOW_PROFILE_COOLING_TIME_MAX_S                 (600)
+#define REFLOW_PROFILE_COOLING_TIME_MIN_S                 (100)
+#define REFLOW_PROFILE_COOLING_TEMP_MAX_C                 (80)
+#define REFLOW_PROFILE_COOLING_TEMP_MIN_C                 (25)
 
+#define REFLOW_PROFILE_RAMP_SPEED_MIN_CS                  (1)
+#define REFLOW_PROFILE_RAMP_SPEED_MAX_CS                  (10)
+#define REFLOW_PROFILE_NAME_LEN_MAX                       (15)
 
 /*
  *******************************************************************************
@@ -38,11 +49,11 @@
 typedef struct {
         char * name;
         uint16_t preheat_temperature;
-        uint16_t soak_time_ms;
+        uint16_t soak_time_s;
         uint16_t reflow_temperature;
-        uint16_t dwell_time_ms;
+        uint16_t dwell_time_s;
         uint16_t cooling_temperature;
-        uint16_t cooling_time_ms;
+        uint16_t cooling_time_s;
         uint16_t ramp_speed;
 } reflow_profile_t;
 

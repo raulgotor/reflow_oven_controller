@@ -44,7 +44,7 @@
 
 bool reflow_timer_init(void);
 
-bool reflow_timer_start_timer(uint32_t const period, state_machine_state_text_t const state);
+bool reflow_timer_start_timer(uint32_t const period_s, state_machine_state_text_t const state);
 
 bool reflow_timer_stop_timer(void);
 
