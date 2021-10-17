@@ -1,6 +1,6 @@
 /*!
  *******************************************************************************
- * @file user_interface.c
+ * @file gui.c
  *
  * @brief 
  *
@@ -75,6 +75,9 @@ static void gui_button_event(lv_obj_t * p_object, lv_event_t event);
 
 static void ui_roller_event(lv_obj_t * p_object, lv_event_t event);
 
+static void gui_tab_profile_new_btn_event(lv_obj_t * const p_object,
+                                          lv_event_t const event);
+
 static void gui_tab_profile_delete_event(lv_obj_t * const p_object, lv_event_t const event);
 
 static void gui_tab_profile_delete_msg_box_event(lv_obj_t * const p_object, lv_event_t const event);
@@ -92,6 +95,16 @@ static void gui_configure_tab_2(void);
 static void gui_configure_tab_3(void);
 
 static void gui_configure_tab_4(void);
+
+static uint8_t gui_get_slider_index(lv_obj_t const * const p_object);
+
+static void gui_edit_profile_slider_cb(lv_obj_t * const p_object,
+                                       lv_event_t const event);
+
+static void gui_select_profile_cb(lv_obj_t * p_object, lv_event_t const event);
+
+static void gui_save_profile(lv_obj_t * p_object, lv_event_t const event);
+
 
 
 /*
@@ -123,7 +136,19 @@ static lv_obj_t * p_edit_button;
 static lv_obj_t * p_delete_button;
 //static lv_obj_t * m_p_stop_button;
 
+// Sliders
+
+static lv_obj_t * preheat_slider = NULL;
+static lv_obj_t * soak_slider = NULL;
+static lv_obj_t * reflow_slider = NULL;
+static lv_obj_t * dwell_slider = NULL;
+
 // Other objects
+static lv_obj_t * preheat_slider_label = NULL;
+static lv_obj_t * soak_slider_label = NULL;
+static lv_obj_t * reflow_slider_label = NULL;
+static lv_obj_t * dwell_slider_label = NULL;
+
 static lv_obj_t * mp_chrt_1;
 static lv_obj_t * p_lmeter;
 static lv_obj_t * p_preheat_temp_roller;
@@ -155,6 +180,37 @@ static uint16_t const m_chart_tick_space_width = 20;
 static int8_t const m_roller_margin = 10;
 
 static const char * m_msg_box_delete_options[] = {"Delete", "Cancel", ""};
+
+typedef struct {
+        lv_obj_t * container;
+        lv_obj_t * slider;
+        lv_obj_t * value_label;
+        lv_obj_t * name_label;
+        char const * name;
+        lv_coord_t slider_min;
+        lv_coord_t slider_max;
+        size_t offset;
+        void (* f_pointer)(lv_obj_t * const p_object, lv_event_t const event);
+} my_container_t;
+
+static lv_obj_t * preheat_container;
+static lv_obj_t * soak_container;
+static lv_obj_t * reflow_container;
+static lv_obj_t * dwell_container;
+
+static my_container_t edit_prof_cont_list[] = {
+                {NULL, NULL, NULL, NULL, "Preheat temp", REFLOW_PROFILE_PREHEAT_TEMP_MIN_C, REFLOW_PROFILE_PREHEAT_TEMP_MAX_C, offsetof(reflow_profile_t , preheat_temperature), gui_edit_profile_slider_cb},
+                {NULL, NULL, NULL, NULL, "Soak time", REFLOW_PROFILE_SOAK_TIME_MIN_S, REFLOW_PROFILE_SOAK_TIME_MAX_S, offsetof(reflow_profile_t , soak_time_s),                  gui_edit_profile_slider_cb},
+                {NULL, NULL, NULL, NULL, "Reflow temp", REFLOW_PROFILE_REFLOW_TEMP_MIN_C,REFLOW_PROFILE_REFLOW_TEMP_MAX_C, offsetof(reflow_profile_t , reflow_temperature),      gui_edit_profile_slider_cb},
+                {NULL, NULL, NULL, NULL, "Dwell time", REFLOW_PROFILE_DWELL_TIME_MIN_S,REFLOW_PROFILE_DWELL_TIME_MAX_S, offsetof(reflow_profile_t , dwell_time_s),               gui_edit_profile_slider_cb},
+                //{NULL, NULL, NULL, NULL, "Cooling temp", REFLOW_PROFILE_COOLING_TEMP_MIN_C, REFLOW_PROFILE_COOLING_TEMP_MAX_C, offsetof(reflow_profile_t, cooling_temperature),gui_edit_profile_slider_cb},
+                //{NULL, NULL, NULL, NULL, "Cooling time", REFLOW_PROFILE_COOLING_TIME_MIN_S, REFLOW_PROFILE_COOLING_TIME_MIN_S, offsetof(reflow_profile_t , cooling_time_s),gui_edit_profile_slider_cb},
+};
+
+static size_t const edit_prof_cont_list_len = sizeof(edit_prof_cont_list) /
+                                              sizeof(edit_prof_cont_list[0]);
+
+static reflow_profile_t buffer_profile;
 
 /*
  *******************************************************************************
@@ -618,6 +674,8 @@ static void gui_configure_tab_4(void)
 
         p_dropdown = lv_ddlist_create(mp_tab_4, NULL);
 
+        lv_obj_set_event_cb(p_dropdown, gui_select_profile_cb);
+
         lv_ddlist_set_sb_mode(p_dropdown, LV_SB_MODE_ON);
         lv_ddlist_set_fix_height(p_dropdown, 150);
         lv_obj_align(p_dropdown, p_dropdown, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
@@ -629,8 +687,8 @@ static void gui_configure_tab_4(void)
         lv_obj_align(p_delete_button, p_edit_button, LV_ALIGN_OUT_RIGHT_MID, 15, 0);
 
         // Set button event callbacks
-        //lv_obj_set_event_cb(p_new_button, gui_tab_profile_delete_event);
-        //lv_obj_set_event_cb(p_edit_button, gui_tab_profile_delete_event);
+        lv_obj_set_event_cb(p_new_button, gui_tab_profile_new_btn_event);
+        lv_obj_set_event_cb(p_edit_button, gui_tab_profile_new_btn_event);
         lv_obj_set_event_cb(p_delete_button, gui_tab_profile_delete_event);
 }
 
@@ -639,6 +697,180 @@ static void gui_configure_tab_4(void)
  * Interrupt Service Routines / Tasks / Thread Main Functions                  *
  *******************************************************************************
  */
+
+static void gui_tab_profile_new_btn_event(lv_obj_t * const p_object,
+                                          lv_event_t const event)
+{
+        bool success = true;
+        lv_obj_t * window;
+        lv_obj_t * close_btn;
+        lv_obj_t * name_field;
+        lv_obj_t * oneline_label;
+        lv_obj_t * prev_obj;
+
+        uint8_t i;
+        uint16_t slider_value;
+
+        char * window_title = "";
+        char buf[6];
+
+        if (LV_EVENT_CLICKED != event) {
+                return;
+        }
+
+        if (p_new_button == p_object) {
+                window_title = "New Profile";
+                success = reflow_profile_get_default(&buffer_profile);
+        } else if (p_edit_button == p_object) {
+                window_title = "Edit Profile";
+                success = reflow_profile_get_current(&buffer_profile);
+        }
+
+        if (!success) {
+                return;
+        }
+
+        // Window
+
+        window = lv_win_create(lv_scr_act(), NULL);
+        lv_win_set_title(window, window_title);
+        close_btn = lv_win_add_btn(window, LV_SYMBOL_CLOSE);
+        lv_obj_set_event_cb(close_btn, gui_save_profile);
+        name_field = lv_ta_create(window, NULL);
+        lv_obj_set_pos(window, 1, 1);
+
+        // Text field
+        lv_obj_set_width(name_field, 200);
+        lv_ta_set_one_line(name_field, true);
+        lv_ta_set_cursor_type(name_field, LV_CURSOR_LINE);
+        lv_obj_align(name_field, window, LV_ALIGN_IN_TOP_LEFT, 10, 80);
+        lv_ta_set_cursor_type(name_field, LV_CURSOR_BLOCK);
+        lv_ta_set_text(name_field, buffer_profile.name);
+        lv_ta_set_max_length(name_field, 15);
+
+        // Text field label
+        oneline_label = lv_label_create(window, NULL);
+        lv_label_set_text(oneline_label, "Profile name:");
+        lv_obj_align(oneline_label, name_field, LV_ALIGN_OUT_TOP_LEFT, 0, 0);
+
+        /* Create a keyboard and make it fill the width of the above text areas */
+        /*        lv_obj_t * kb = lv_kb_create(lv_scr_act(), NULL);
+                lv_obj_set_pos(kb, 5, 90);
+                lv_obj_set_size(kb,  LV_HOR_RES - 10, 140);
+
+                lv_kb_set_ta(kb, name_field);
+        lv_kb_set_cursor_manage(kb, true);
+*/
+        // Preheat temperature container
+
+        for (i = 0; edit_prof_cont_list_len > i; i++) {
+
+                if (i == 0) {
+                        prev_obj = name_field;
+                } else {
+                        prev_obj = edit_prof_cont_list[i - 1].container;
+                }
+
+                slider_value = *((uint16_t *)((uint8_t  *)(&buffer_profile) + edit_prof_cont_list[i].offset));
+
+                // Label text
+                edit_prof_cont_list[i].name_label = lv_label_create(window, NULL);
+                lv_label_set_text(edit_prof_cont_list[i].name_label, edit_prof_cont_list[i].name);
+                lv_obj_align(edit_prof_cont_list[i].name_label, prev_obj, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 0);
+
+                // Container
+                edit_prof_cont_list[i].container = lv_cont_create(window, NULL);
+                lv_obj_set_auto_realign(edit_prof_cont_list[i].container, true);
+                lv_obj_align(edit_prof_cont_list[i].container, edit_prof_cont_list[i].name_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 0);
+                lv_cont_set_fit(edit_prof_cont_list[i].container, LV_FIT_NONE);
+                lv_obj_set_width(edit_prof_cont_list[i].container, 280);
+                lv_cont_set_layout(edit_prof_cont_list[i].container, LV_LAYOUT_ROW_M);
+
+                // Slider
+                edit_prof_cont_list[i].slider = lv_slider_create(edit_prof_cont_list[i].container, NULL);
+                lv_slider_set_range(edit_prof_cont_list[i].slider, edit_prof_cont_list[i].slider_min, edit_prof_cont_list[i].slider_max);
+                lv_slider_set_value(edit_prof_cont_list[i].slider, (int16_t)slider_value, LV_ANIM_OFF);
+                lv_obj_set_event_cb(edit_prof_cont_list[i].slider, edit_prof_cont_list[i].f_pointer);
+                lv_obj_set_width(edit_prof_cont_list[i].slider, 200);
+
+                // Label value
+                edit_prof_cont_list[i].value_label = lv_label_create(edit_prof_cont_list[i].container, NULL);
+                //lv_obj_align(edit_prof_cont_list[i].label, edit_prof_cont_list[i].slider, LV_ALIGN_OUT_LEFT_MID,0,0);
+                snprintf(buf, 6, "%u", slider_value);
+                lv_label_set_text(edit_prof_cont_list[i].value_label, buf);
+
+        }
+}
+
+static void gui_select_profile_cb(lv_obj_t* p_object, lv_event_t const event)
+{
+        char buffer[16];
+        reflow_profile_t profile;
+        bool success = true;
+        if (LV_EVENT_RELEASED == event) {
+                lv_ddlist_get_selected_str(p_object, buffer, sizeof(buffer));
+                printf("%s\n", buffer);
+
+                success = reflow_profile_load(buffer, &profile);
+
+                if (success) {
+                        printf("Reflow profile in use is %s\n", profile.name);
+                        success = reflow_profile_use(&profile);
+                }
+        }
+
+}
+static void gui_save_profile(lv_obj_t * p_object, lv_event_t const event)
+{
+        if (LV_EVENT_RELEASED == event) {
+                //(void)reflow_profile_save(&buffer_profile);
+                lv_win_close_event_cb(p_object, event);
+
+        }
+}
+
+static uint8_t gui_get_slider_index(lv_obj_t const * const p_object)
+{
+        uint8_t index = 0xFF;
+        bool found = false;
+        uint8_t i;
+
+        if (NULL != p_object) {
+                for (i = 0; (edit_prof_cont_list_len > i) && (!found); ++i) {
+                        if (p_object == edit_prof_cont_list[i].slider) {
+                                found = true;
+                                index = i;
+                        }
+                }
+        }
+
+        return index;
+}
+
+
+static void gui_edit_profile_slider_cb(lv_obj_t * const p_object,
+                                       lv_event_t const event)
+{
+        uint8_t slider_index;
+        int16_t slider_value;
+        size_t offset;
+        char buf[4]; /* max 3 bytes for number plus 1 null terminating byte */
+
+        if (LV_EVENT_VALUE_CHANGED == event) {
+                slider_value = lv_slider_get_value(p_object);
+                slider_index = gui_get_slider_index(p_object);
+                offset = edit_prof_cont_list[slider_index].offset;
+                *(((uint8_t *)&buffer_profile) + offset) = slider_value;
+
+                snprintf(buf, 4, "%u", slider_value);
+
+                if (0xFF != slider_index) {
+
+                        lv_label_set_text(edit_prof_cont_list[slider_index].value_label, buf);
+                }
+        }
+
+}
 
 static void gui_tab_profile_delete_event(lv_obj_t * const p_object,
                                          lv_event_t const event)
