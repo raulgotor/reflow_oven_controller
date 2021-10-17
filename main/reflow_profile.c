@@ -66,8 +66,6 @@
 
 static bool is_valid_reflow_profile(reflow_profile_t const * const p_reflow_profile);
 
-static void reflow_profile_use_defaults(void);
-
 static bool is_profile_nvs_initialized(void);
 
 static bool initialize_profile_nvs(void);
@@ -130,6 +128,7 @@ bool reflow_profile_init(void)
                 m_is_initialized = true;
                 success = reflow_profile_load(m_reflow_profile_default.name,
                                               &m_reflow_profile);
+                add_fake_profiles();
         }
 
         return success;
@@ -321,14 +320,13 @@ bool reflow_profile_get_profiles_list(char ** p_profiles, size_t * const p_size)
         }
 
         if (success) {
-                // adding space for the \0 terminator
-                counter++;
 
                 iterator = nvs_entry_find("nvs",
                                           REFLOW_PROFILE_NVS_NAMESPACE,
                                           NVS_TYPE_ANY);
 
-                buffer = pvPortMalloc(counter);
+                // adding space for the \0 terminator
+                buffer = pvPortMalloc(counter + 1);
 
                 success = (NULL != buffer);
         }
@@ -359,6 +357,17 @@ bool reflow_profile_get_profiles_list(char ** p_profiles, size_t * const p_size)
 
 
         printf("%s %d\n", buffer, counter);
+
+        return success;
+}
+
+bool reflow_profile_get_default(reflow_profile_t * const p_reflow_profile)
+{
+        bool success = (NULL != p_reflow_profile);
+
+        if (success) {
+                *p_reflow_profile = m_reflow_profile_default;
+        }
 
         return success;
 }
@@ -405,11 +414,6 @@ static bool is_valid_reflow_profile(reflow_profile_t const * const p_reflow_prof
                 success = true;
         }
         return success;
-}
-
-static void reflow_profile_use_defaults(void)
-{
-        m_reflow_profile = m_reflow_profile_default;
 }
 
 static bool is_profile_nvs_initialized(void)
@@ -488,21 +492,16 @@ static bool initialize_profile_nvs(void)
 
 static bool add_fake_profiles(void)
 {
-        esp_err_t result = nvs_open(REFLOW_PROFILE_NVS_NAMESPACE,
-                                    NVS_READWRITE, &m_nvs_h);
-
+        bool success = true;
         reflow_profile_t fake_profile = m_reflow_profile_default;
-        char fakename[10] = "fake_namex";
+        char fakename[11] = "fake_namex\0";
         uint8_t i = 0;
-        bool success;
-
-        success = (ESP_OK == result);
 
         for (i = 0; (10 > i) && (success); i++) {
                 fakename[9] = '0' + i;
                 fake_profile.name = fakename;
+                fake_profile.preheat_temperature += i;
                 reflow_profile_save(&fake_profile);
-                success = (ESP_OK == result);
         }
 
         return success;

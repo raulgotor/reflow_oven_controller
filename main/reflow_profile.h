@@ -83,4 +83,6 @@ bool reflow_profile_get_current(reflow_profile_t * const p_reflow_profile);
 
 bool reflow_profile_get_profiles_list(char ** p_profiles, size_t * const p_size);
 
+bool reflow_profile_get_default(reflow_profile_t * const p_reflow_profile);
+
 #endif //REFLOW_PROFILE_H
