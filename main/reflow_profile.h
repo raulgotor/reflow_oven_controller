@@ -47,7 +47,7 @@
  */
 
 typedef struct {
-        char * name;
+        char name[16];
         uint16_t preheat_temperature;
         uint16_t soak_time_s;
         uint16_t reflow_temperature;

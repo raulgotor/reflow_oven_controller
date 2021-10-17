@@ -157,7 +157,7 @@ bool reflow_profile_save(reflow_profile_t const * const p_reflow_profile)
                 needs_close = true;
                 result = nvs_set_blob(m_nvs_h,
                                       p_reflow_profile->name,
-                                      &p_reflow_profile,
+                                      p_reflow_profile,
                                       required_size);
 
                 success = (ESP_OK == result);
@@ -498,9 +498,8 @@ static bool add_fake_profiles(void)
         uint8_t i = 0;
 
         for (i = 0; (10 > i) && (success); i++) {
-                fakename[9] = '0' + i;
-                fake_profile.name = fakename;
-                fake_profile.preheat_temperature += i;
+                memcpy(fake_profile.name, fakename, 11);
+                fake_profile.name[9] = '0' + i;
                 reflow_profile_save(&fake_profile);
         }
 
