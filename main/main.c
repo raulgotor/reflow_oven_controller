@@ -40,7 +40,7 @@
 #include "reflow_profile.h"
 #include "state_machine/states/state_machine_states.h"
 #include "state_machine/state_machine.h"
-#include "gui.h"
+#include "gui/gui.h"
 #include "thermocouple.h"
 #include "reflow_timer.h"
 

@@ -1,11 +1,11 @@
 /*!
  *******************************************************************************
- * @file reflow_timer.c
+ * @file gui_views_profile.c
  *
  * @brief 
  *
  * @author Raúl Gotor (raulgotor@gmail.com)
- * @date 26.09.21
+ * @date 17.10.21
  *
  * @par
  * COPYRIGHT NOTICE: (c) 2021 Raúl Gotor
@@ -19,14 +19,10 @@
  *******************************************************************************
  */
 
-#include <stdbool.h>
-#include "freertos/FreeRTOS.h"
-#include "freertos/FreeRTOSConfig.h"
-#include "freertos/timers.h"
-#include "esp_log.h"
-#include "state_machine/states/state_machine_states.h"
-#include "state_machine/state_machine.h"
-#include "reflow_timer.h"
+#include "lvgl.h"
+#include "reflow_profile.h"
+#include "gui/gui_ctrls/gui_ctrls_profile.h"
+#include "gui/gui_views/gui_views_profile.h"
 
 /*
  *******************************************************************************
@@ -34,7 +30,8 @@
  *******************************************************************************
  */
 
-#define TAG                                 __FILENAME__
+#define BUTTON_TEXT_CANCEL                      "Cancel"
+
 /*
  *******************************************************************************
  * Data types                                                                  *
@@ -53,8 +50,6 @@
  *******************************************************************************
  */
 
-static void reflow_timer_callback(TimerHandle_t handle);
-
 /*
  *******************************************************************************
  * Public Data Declarations                                                    *
@@ -67,72 +62,62 @@ static void reflow_timer_callback(TimerHandle_t handle);
  *******************************************************************************
  */
 
- xTimerHandle m_reflow_timer_h = NULL;
-
-static bool m_is_initialized = false;
-
-static state_machine_state_text_t m_reflow_timer_state = STATE_MACHINE_STATE_COUNT;
-
 /*
  *******************************************************************************
  * Public Function Bodies                                                      *
  *******************************************************************************
  */
 
-bool reflow_timer_init(void)
+void gui_views_profile(lv_obj_t * const p_parent)
 {
-        bool success = (!m_is_initialized);
+        uint8_t const button_width = 85;
+        uint8_t const button_height = 50;
 
-        if (success) {
-                m_reflow_timer_h = xTimerCreate("reflow_timer",
-                                                portMAX_DELAY,
-                                                pdFALSE,
-                                                (void *)0,
-                                                reflow_timer_callback);
+        // Configure buttons
 
-                success = (NULL != m_reflow_timer_h);
-        }
+        p_new_button = lv_btn_create(p_parent, NULL);
+        lv_obj_set_size(p_new_button, button_width, button_height);
 
-        if (success) {
-                m_is_initialized = true;
-        }
+        p_edit_button = lv_btn_create(p_parent, NULL);
+        lv_obj_set_size(p_edit_button, button_width, button_height);
 
-        return success;
+        p_delete_button = lv_btn_create(p_parent, NULL);
+        lv_obj_set_size(p_delete_button, button_width, button_height);
+
+        // Add labels
+
+        p_new_button_label = lv_label_create(p_new_button, NULL);
+        lv_label_set_text(p_new_button_label, LV_SYMBOL_OK BUTTON_TEXT_NEW);
+        p_edit_button_label = lv_label_create(p_edit_button, NULL);
+        lv_label_set_text(p_edit_button_label, LV_SYMBOL_EDIT BUTTON_TEXT_EDIT);
+        p_delete_button_label = lv_label_create(p_delete_button, NULL);
+        lv_label_set_text(p_delete_button_label, LV_SYMBOL_TRASH BUTTON_TEXT_DELETE);
+
+        // Configure dropdown
+
+        p_dropdown_label = lv_label_create(p_parent, NULL);
+        lv_label_set_text(p_dropdown_label, LABEL_TEXT_PROFILE);
+
+        p_dropdown = lv_ddlist_create(p_parent, NULL);
+
+        lv_obj_set_event_cb(p_dropdown, gui_select_profile_cb);
+
+        lv_ddlist_set_sb_mode(p_dropdown, LV_SB_MODE_ON);
+        lv_ddlist_set_fix_height(p_dropdown, 150);
+        lv_obj_align(p_dropdown, p_dropdown, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
+
+        // Layout
+
+        lv_obj_align(p_edit_button, p_parent, LV_ALIGN_IN_BOTTOM_MID, 0, -10);
+        lv_obj_align(p_new_button, p_edit_button, LV_ALIGN_OUT_LEFT_MID, -15, 0);
+        lv_obj_align(p_delete_button, p_edit_button, LV_ALIGN_OUT_RIGHT_MID, 15, 0);
+
+        // Set button event callbacks
+        lv_obj_set_event_cb(p_new_button, gui_tab_profile_new_btn_event);
+        lv_obj_set_event_cb(p_edit_button, gui_tab_profile_new_btn_event);
+        lv_obj_set_event_cb(p_delete_button, gui_tab_profile_delete_event);
 }
 
-bool reflow_timer_start_timer(uint32_t const period_s,
-                              state_machine_state_text_t const state)
-{
-        uint32_t const period_ticks = pdMS_TO_TICKS(period_s * 1000);
-        BaseType_t result;
-        bool success;
-
-        result = xTimerChangePeriod(m_reflow_timer_h, pdMS_TO_TICKS(period_ticks), portMAX_DELAY);
-
-        success  = (pdPASS == result);
-
-        if (success) {
-                result = xTimerStart(m_reflow_timer_h, portMAX_DELAY);
-                success  = (pdPASS == result);
-        }
-
-        if (success) {
-                m_reflow_timer_state = state;
-                ESP_LOGI(TAG, "Timer started for %d ticks", pdMS_TO_TICKS(period_ticks));
-
-        }
-
-        return success;
-}
-
-bool reflow_timer_stop_timer(void)
-{
-        BaseType_t result;
-
-        result = xTimerStop(m_reflow_timer_h, portMAX_DELAY);
-
-        return (pdPASS == result);
-}
 
 /*
  *******************************************************************************
@@ -145,20 +130,3 @@ bool reflow_timer_stop_timer(void)
  * Interrupt Service Routines / Tasks / Thread Main Functions                  *
  *******************************************************************************
  */
-
-static void reflow_timer_callback(TimerHandle_t const handle)
-{
-        state_machine_msg_t const message =
-                        state_machine_get_timeout_msg(m_reflow_timer_state);
-
-        bool success = (STATE_MACHINE_MSG_COUNT != message);
-        state_machine_data_t data;
-
-        ESP_LOGI(TAG, "Timer is done, state is %d and message is %d", m_reflow_timer_state, message);
-
-        if (success) {
-                data.message = message;
-                state_machine_send_event(STATE_MACHINE_EVENT_TYPE_MESSAGE,
-                                         data, STATE_MACHINE_TIMEOUT_CALLBACK);
-        }
-}
