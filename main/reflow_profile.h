@@ -40,6 +40,8 @@
 #define REFLOW_PROFILE_RAMP_SPEED_MAX_CS                  (10)
 #define REFLOW_PROFILE_NAME_LEN_MAX                       (15)
 
+#define REFLOW_PROFILES_MAX_PROFILES_CNT                  (10)
+
 /*
  *******************************************************************************
  * Public Data Types                                                           *

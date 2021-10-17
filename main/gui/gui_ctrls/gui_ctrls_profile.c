@@ -371,6 +371,12 @@ static void update_profiles_dropdown(void)
                 } else {
                         lv_btn_set_state(p_delete_button, LV_BTN_STATE_REL);
                 }
+
+                if (REFLOW_PROFILES_MAX_PROFILES_CNT <= counter) {
+                        lv_btn_set_state(p_new_button, LV_BTN_STATE_INA);
+                } else {
+                        lv_btn_set_state(p_new_button, LV_BTN_STATE_REL);
+                }
         }
 }
 
