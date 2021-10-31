@@ -2,7 +2,9 @@
  *******************************************************************************
  * @file reflow_profile.c
  *
- * @brief 
+ * @brief This module defines a reflow profile, and provides an API for all the
+ *        operations needed regarding them, such as load, save, delete,
+ *        validate, compare,...
  *
  * @author Raúl Gotor (raulgotor@gmail.com)
  * @date 18.09.21
@@ -69,13 +71,17 @@
  *******************************************************************************
  */
 
+//! @brief Validate given `reflow_profile_t` object
 static bool is_valid_reflow_profile(reflow_profile_t const * const p_reflow_profile);
 
+//! @brief Check whether the profile NVS section is initialized
 static bool is_profile_nvs_initialized(void);
 
+//! @brief Initialize NVS
 static bool initialize_profile_nvs(void);
 
-static void print_namespace_contents(char * namespace);
+//! @brief Print contents of the provided namespace
+static void print_namespace_contents(char const * const p_namespace);
 
 /*
  *******************************************************************************
@@ -90,10 +96,13 @@ static void print_namespace_contents(char * namespace);
  *******************************************************************************
  */
 
+//! @brief Control wheter the module is initialized or not
 static bool m_is_initialized = false;
 
+//! @brief Current reflow profile being used
 static reflow_profile_t m_reflow_profile;
 
+//! @brief Reflow profile used for default or new profiles
 static reflow_profile_t const m_reflow_profile_factory = {
         REFLOW_PROFILE_DEFAULT_NAME,
         REFLOW_PROFILE_DEFAULT_PREHEAT_TEMP_C,
@@ -105,8 +114,10 @@ static reflow_profile_t const m_reflow_profile_factory = {
         REFLOW_PROFILE_DEFAULT_RAMP_SPEED,
 };
 
+//! @brief Handle for the NVS objet being used
 static nvs_handle_t m_nvs_h;
 
+// TODO: remove after development
 static bool add_fake_profiles(void);
 
 /*
@@ -115,11 +126,20 @@ static bool add_fake_profiles(void);
  *******************************************************************************
  */
 
+/*!
+ * @brief Initialize reflow profile module
+ *
+ * @param           -                       -
+ *
+ * @return          bool                    Result of the operation
+ */
 bool reflow_profile_init(void)
 {
         bool success = !m_is_initialized;
         char default_name[REFLOW_PROFILE_NAME_LEN_MAX + 1];
+
         if (success) {
+                // TODO: check for NVS initialized
 
                 if (!is_profile_nvs_initialized()) {
                         success = initialize_profile_nvs();
@@ -144,6 +164,17 @@ bool reflow_profile_init(void)
         return success;
 }
 
+/*!
+ * @brief Determine whether two profiles are identical
+ *
+ * @param[in]       p_reflow_profile_1      pointer to the first profile to
+ *                                          compare
+ * @param[in]       p_reflow_profile_2      pointer to the second profile to
+ *                                          compare
+ * @return          bool                    Result of the operation
+ * @retval          True                    If profiles are equal
+ * @retval          False                   If profiles differ or pointer invalid
+ */
 bool reflow_profile_are_equal(reflow_profile_t const * const p_reflow_profile_1,
                               reflow_profile_t const * const p_reflow_profile_2)
 {
@@ -165,6 +196,24 @@ bool reflow_profile_are_equal(reflow_profile_t const * const p_reflow_profile_1,
         return success;
 }
 
+/*!
+ * @brief Save profile to NVS
+ *
+ * The function will take a pointer to the profile and validate it. If is valid,
+ * it will try to save it to the NVS profile section
+ *
+ * @warning This function is not checking for the amount of already saved
+ *          profiles. This is caller responsibility.
+ *
+ * @param[in]       p_reflow_profile        pointer to the `reflow_profile_t`
+ *                                          to save
+ *
+ * @return          bool                    Result of the operation
+ * @retval          true                    If everything went well
+ * @retval          false                   If pointer was invalid, module not
+ *                                          initialized, profile was invalid or
+ *                                          couldn't be saved due to I/O failure
+ */
 bool reflow_profile_save(reflow_profile_t const * const p_reflow_profile)
 {
         bool success = ((NULL != p_reflow_profile) && (m_is_initialized));
@@ -211,11 +260,20 @@ bool reflow_profile_save(reflow_profile_t const * const p_reflow_profile)
 /*!
  * @brief Load a reflow profile from NVS to a `reflow_profile_t` object
  *
+ * @note This function loads a profile from the NVS to the given object, but
+ *       it's not set as the current or default profile.
+ *       @see `reflow_profile_use` and ``
+ *
  * @param[in]       p_name              Name of the profile to load
  * @param[out]      p_reflow_profile    Pointer to object where to store the
  *                                      profile at
  *
  * @return          bool                Result of the operation
+ * @retval          true                If everything went well
+ * @retval          false               If a pointer was invalid, module not
+ *                                      initialized, retrieved profile was
+ *                                      invalid or couldn't be loaded due to an
+ *                                      I/O failure
  */
 bool reflow_profile_load(char const * const p_name,
                          reflow_profile_t * const p_reflow_profile)
@@ -266,6 +324,23 @@ bool reflow_profile_load(char const * const p_name,
         return success;
 }
 
+/*!
+ * @brief Delete a `reflow_profile_t` from the NVS
+ *
+ * The function will search on the NVS for a key with the given name and delete
+ * it if found
+ *
+ * @param[in]       p_name                  pointer to a string containing the
+ *                                          name of the `reflow_profile_t` to
+ *                                          delete
+ *
+ * @return          bool                    Result of the operation
+ * @retval          true                    If everything went well
+ * @retval          false                   If pointer was invalid, module not
+ *                                          initialized, profile was not found
+ *                                          or couldn't be deleted due to I/O
+ *                                          failure
+ */
 bool reflow_profile_delete(char const * const p_name)
 {
         bool success = (m_is_initialized) && (NULL != p_name);
@@ -302,11 +377,11 @@ bool reflow_profile_delete(char const * const p_name)
 /*!
  * @brief Load and use the profile with the given name
  *
- * This function will load a profile from a given name and will set it as
+ * This function will load a profile from a given `p_name` and will set it as
  * default in the NVS so it is used next time the device boots
  *
- * @param               name                pointer to string holding the
- *                                          name of the profile to load
+ * @param               p_name              pointer to string holding the
+ *                                          p_name of the profile to load
  *
  * @return              bool                Result of the operation
  * @retval              True                If everything went well
@@ -314,16 +389,16 @@ bool reflow_profile_delete(char const * const p_name)
  *                                          initialized, or there was a I/O
  *                                          error
  */
-bool reflow_profile_use(char const * name)
+bool reflow_profile_use(char const * p_name)
 {
-        bool success = ((NULL != name) && (m_is_initialized));
+        bool success = ((NULL != p_name) && (m_is_initialized));
         bool needs_close = false;
 
         reflow_profile_t buffer_profile;
         esp_err_t result;
 
         if (success) {
-                success = reflow_profile_load(name, &buffer_profile);
+                success = reflow_profile_load(p_name, &buffer_profile);
         }
 
         if (success) {
@@ -337,7 +412,9 @@ bool reflow_profile_use(char const * name)
 
         if (success) {
                 needs_close = true;
-                result = nvs_set_str(m_nvs_h, REFLOW_PROFILE_NVS_DEFAULT_PROFILE_NAME, m_reflow_profile.name);
+                result = nvs_set_str(m_nvs_h,
+                                     REFLOW_PROFILE_NVS_DEFAULT_PROFILE_NAME,
+                                     m_reflow_profile.name);
 
                 success = (ESP_OK == result);
         }
@@ -354,7 +431,7 @@ bool reflow_profile_use(char const * name)
                 nvs_close(m_nvs_h);
         }
 
-        printf("name %s\n", m_reflow_profile.name);
+        printf("p_name %s\n", m_reflow_profile.name);
         printf("preheat_temperature %d\n", m_reflow_profile.preheat_temperature);
         printf("soak_time_s %d\n", m_reflow_profile.soak_time_s);
         printf("reflow_temperature %d\n", m_reflow_profile.reflow_temperature);
@@ -366,6 +443,21 @@ bool reflow_profile_use(char const * name)
         return success;
 }
 
+/*!
+ * @brief Get from NVS the default profile to be used
+ *
+ * This function reads on the specific NVS section which profile is currently
+ * being used at the time, or was being used last time that the device went off
+ *
+ * @param[in]           p_name              pointer to a string where to store
+ *                                          the default profile name to
+ *
+ * @return              bool                Result of the operation
+ * @retval              True                If everything went well
+ * @retval              False               If pointer is null, module is not
+ *                                          initialized, or there was a I/O
+ *                                          error
+ */
 bool reflow_profile_get_default(char const * p_name)
 {
 
@@ -408,6 +500,19 @@ bool reflow_profile_get_default(char const * p_name)
         return success;
 }
 
+/*!
+ * @brief Get from module variable a `reflow_profile_t` object being used right
+ *        now
+ *
+ * @param[out]          p_reflow_profile    pointer to a `reflow_profile_t`
+ *                                          where to store the current profile
+ *                                          to
+ *
+ * @return              bool                Result of the operation
+ * @retval              True                If everything went well
+ * @retval              False               If pointer is null or module is not
+ *                                          initialized
+ */
 bool reflow_profile_get_current(reflow_profile_t * const p_reflow_profile)
 {
 
@@ -421,13 +526,22 @@ bool reflow_profile_get_current(reflow_profile_t * const p_reflow_profile)
 }
 
 /*!
- * @brief
+ * @brief Get a string with all the profile names stored in the NVS
  *
- * @warning this function only frees memory if it was allocated and then a failure
- *          occurs afterwards. Otherwise, its caller responsibility to free it
- * @param p_profiles
- * @param p_size
- * @return
+ * @warning This function allocates memory for providing the string object.
+ *          Memory is only freed by the function if it was allocated and then a
+ *          failure occured afterwards. Otherwise, its caller responsibility to
+ *          free it
+ *
+ * @param[out]          p_profiles          Double pointer to store the pointer
+ *                                          of the allocated list to.
+ * @param[out]          p_size              Pointer to return the size of the
+ *                                          allocated list.
+ *
+ * @return              bool                Result of the operation
+ * @retval              True                If everything went well
+ * @retval              False               If a pointer is null, module is not
+ *                                          initialized or allocation failed
  */
 bool reflow_profile_get_profiles_list(char ** p_profiles, size_t * const p_size)
 {
@@ -461,13 +575,13 @@ bool reflow_profile_get_profiles_list(char ** p_profiles, size_t * const p_size)
 
         if (success) {
                 strcpy(buffer, "");
-        }
 
-        while ((NULL != iterator) && (success)) {
-                nvs_entry_info(iterator, &info);
-                iterator = nvs_entry_next(iterator);
-                strcat(buffer, info.key);
-                strcat(buffer, "\n");
+                while (NULL != iterator) {
+                        nvs_entry_info(iterator, &info);
+                        iterator = nvs_entry_next(iterator);
+                        strcat(buffer, info.key);
+                        strcat(buffer, "\n");
+                }
         }
 
         if (!success || (0 == strlen(buffer))) {
@@ -486,6 +600,16 @@ bool reflow_profile_get_profiles_list(char ** p_profiles, size_t * const p_size)
         return success;
 }
 
+/*!
+ * @brief Get default factory `reflow_profile_t` object
+ *
+ * @param[out]          p_reflow_profile    Pointer to the object where to store
+ *                                          the profile at
+ *
+ * @return              bool                Result of the operation
+ * @retval              True                If everything went well
+ * @retval              False               If pointer is null
+ */
 bool reflow_profile_get_factory_profile(reflow_profile_t * const p_reflow_profile)
 {
         bool success = (NULL != p_reflow_profile);
@@ -502,9 +626,23 @@ bool reflow_profile_get_factory_profile(reflow_profile_t * const p_reflow_profil
  * Private Function Bodies                                                     *
  *******************************************************************************
  */
+
+/*!
+ * @brief Validate given `reflow_profile_t` object
+ *
+ * The function will check that the profile fields are within the established
+ * maximum and minimum values
+ *
+ * @param[in]           p_reflow_profile    Pointer to the object to validate
+ *
+ * @return              bool                Result of the operation
+ * @retval              True                If profile is valid
+ * @retval              False               If pointer is null, or profile is
+ *                                          invalid
+ */
 static bool is_valid_reflow_profile(reflow_profile_t const * const p_reflow_profile)
 {
-        bool success = false;
+        bool success = (NULL != p_reflow_profile);
 
         if ((REFLOW_PROFILE_REFLOW_TEMP_MAX_C >=
                                     p_reflow_profile->reflow_temperature) &&
@@ -541,23 +679,36 @@ static bool is_valid_reflow_profile(reflow_profile_t const * const p_reflow_prof
         return success;
 }
 
+/*!
+ * @brief Check whether the profile NVS section is initialized
+ *
+ * The function will check that the profile fields are within the established
+ * maximum and minimum values
+ *
+ * @param               -                   -
+ *
+ * @return              bool                Result of the operation
+ * @retval              True                If nvs section is initialized
+ * @retval              False               If I/O error happened or nvs section
+ *                                          is not initialized
+ */
 static bool is_profile_nvs_initialized(void)
 {
         uint8_t initialized = 0;
         bool needs_close = false;
-        bool success;
         esp_err_t result = nvs_open(REFLOW_PROFILE_NVS_NAMESPACE_INIT,
-                                    NVS_READWRITE,
-                                    &m_nvs_h);
+                                            NVS_READWRITE,
+                                            &m_nvs_h);
 
-        success = (ESP_OK == result);
+        bool success = (ESP_OK == result);
 
         if (success) {
+                needs_close = true;
+
                 result = nvs_get_u8(m_nvs_h,
                             REFLOW_PROFILE_NVS_INITIALIZED,
                             &initialized);
 
-                needs_close = true;
         }
 
         if ((ESP_OK == result) && (1 == initialized)) {
@@ -575,12 +726,25 @@ static bool is_profile_nvs_initialized(void)
         return success;
 }
 
+/*!
+ * @brief Initialize NVS
+ *
+ * The function will save default values to both INIT and PROFILE NVS
+ *
+ * @param               -                   -
+ *
+ * @return              bool                Result of the operation
+ * @retval              True                If nvs section is initialized
+ * @retval              False               If I/O error occurred
+ */
 static bool initialize_profile_nvs(void)
 {
         bool needs_close = false;
         size_t const profile_size = sizeof(m_reflow_profile_factory);
         esp_err_t result = nvs_open(REFLOW_PROFILE_NVS_NAMESPACE_INIT,
-                                    NVS_READWRITE, &m_nvs_h);
+                                    NVS_READWRITE,
+                                    &m_nvs_h);
+
         bool success;
 
         success = (ESP_OK == result);
@@ -639,6 +803,7 @@ static bool initialize_profile_nvs(void)
         return success;
 }
 
+//TODO: remove after development done
 static bool add_fake_profiles(void)
 {
         bool success = true;
@@ -654,12 +819,19 @@ static bool add_fake_profiles(void)
 
         return success;
 }
-
-static void print_namespace_contents(char * namespace)
+/*!
+ * @brief Print contents of the provided namespace
+ *
+ * @param               p_namespace         Pointer to the namespace string to
+ *                                          print the contents from
+ *
+ * @return              -                   -
+ */
+static void print_namespace_contents(char const * const p_namespace)
 {
         nvs_entry_info_t info;
         nvs_iterator_t iterator = nvs_entry_find("nvs",
-                                                 namespace,
+                                                 p_namespace,
                                                  NVS_TYPE_ANY);
         while (NULL != iterator) {
                 nvs_entry_info(iterator, &info);
