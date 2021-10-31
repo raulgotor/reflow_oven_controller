@@ -51,15 +51,14 @@
  *******************************************************************************
  */
 
-void gui_tab_profile_new_btn_event(lv_obj_t * const p_object,
-                                   lv_event_t const event);
+void gui_ctrls_profile_edit_button_event(lv_obj_t * const p_object,
+                                         lv_event_t const event);
 
-void gui_tab_profile_delete_event(lv_obj_t * const p_object,
-                                  lv_event_t const event);
+void gui_ctrls_profile_delete_button_event(lv_obj_t * const p_object,
+                                           lv_event_t const event);
 
-void gui_select_profile_cb(lv_obj_t * p_object, lv_event_t const event);
+void gui_ctrls_profile_select_dd_event(lv_obj_t * p_object, lv_event_t const event);
 
 void gui_ctrls_profile_init(void);
-
 
 #endif //GUI_CTRLS_PROFILE_H

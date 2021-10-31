@@ -100,7 +100,7 @@ void gui_views_profile(lv_obj_t * const p_parent)
 
         p_dropdown = lv_ddlist_create(p_parent, NULL);
 
-        lv_obj_set_event_cb(p_dropdown, gui_select_profile_cb);
+        lv_obj_set_event_cb(p_dropdown, gui_ctrls_profile_select_dd_event);
 
         lv_ddlist_set_sb_mode(p_dropdown, LV_SB_MODE_ON);
         lv_ddlist_set_fix_height(p_dropdown, 150);
@@ -113,9 +113,9 @@ void gui_views_profile(lv_obj_t * const p_parent)
         lv_obj_align(p_delete_button, p_edit_button, LV_ALIGN_OUT_RIGHT_MID, 15, 0);
 
         // Set button event callbacks
-        lv_obj_set_event_cb(p_new_button, gui_tab_profile_new_btn_event);
-        lv_obj_set_event_cb(p_edit_button, gui_tab_profile_new_btn_event);
-        lv_obj_set_event_cb(p_delete_button, gui_tab_profile_delete_event);
+        lv_obj_set_event_cb(p_new_button, gui_ctrls_profile_edit_button_event);
+        lv_obj_set_event_cb(p_edit_button, gui_ctrls_profile_edit_button_event);
+        lv_obj_set_event_cb(p_delete_button, gui_ctrls_profile_delete_button_event);
 }
 
 

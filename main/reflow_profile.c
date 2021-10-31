@@ -21,6 +21,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "esp_log.h"
 #include <lvgl/src/lv_core/lv_style.h>
 #include "freertos/FreeRTOS.h"
 
@@ -34,8 +35,12 @@
  *******************************************************************************
  */
 
+#define TAG                                             __FILENAME__
+
 #define REFLOW_PROFILE_NVS_NAMESPACE                    "reflow_profile"
+#define REFLOW_PROFILE_NVS_NAMESPACE_INIT               "init"
 #define REFLOW_PROFILE_NVS_INITIALIZED                  "initialized"
+#define REFLOW_PROFILE_NVS_DEFAULT_PROFILE_NAME         "default_profile"
 
 #define REFLOW_PROFILE_DEFAULT_NAME                     "Sn60Pb40"
 #define REFLOW_PROFILE_DEFAULT_PREHEAT_TEMP_C           (170)
@@ -70,7 +75,7 @@ static bool is_profile_nvs_initialized(void);
 
 static bool initialize_profile_nvs(void);
 
-static void print_namespace_contents(void);
+static void print_namespace_contents(char * namespace);
 
 /*
  *******************************************************************************
@@ -89,7 +94,7 @@ static bool m_is_initialized = false;
 
 static reflow_profile_t m_reflow_profile;
 
-static reflow_profile_t const m_reflow_profile_default = {
+static reflow_profile_t const m_reflow_profile_factory = {
         REFLOW_PROFILE_DEFAULT_NAME,
         REFLOW_PROFILE_DEFAULT_PREHEAT_TEMP_C,
         REFLOW_PROFILE_DEFAULT_SOAK_TIME_S,
@@ -113,7 +118,7 @@ static bool add_fake_profiles(void);
 bool reflow_profile_init(void)
 {
         bool success = !m_is_initialized;
-
+        char default_name[REFLOW_PROFILE_NAME_LEN_MAX + 1];
         if (success) {
 
                 if (!is_profile_nvs_initialized()) {
@@ -122,13 +127,39 @@ bool reflow_profile_init(void)
         }
 
         // TODO: surround with debug macro
-        print_namespace_contents();
+        print_namespace_contents(REFLOW_PROFILE_NVS_NAMESPACE_INIT);
+        print_namespace_contents(REFLOW_PROFILE_NVS_NAMESPACE);
 
         if (success) {
                 m_is_initialized = true;
-                success = reflow_profile_load(m_reflow_profile_default.name,
+
+                success = reflow_profile_get_default(default_name);
+        }
+
+        if (success) {
+                success = reflow_profile_load(default_name,
                                               &m_reflow_profile);
-                add_fake_profiles();
+        }
+
+        return success;
+}
+
+bool reflow_profile_are_equal(reflow_profile_t const * const p_reflow_profile_1,
+                              reflow_profile_t const * const p_reflow_profile_2)
+{
+        bool success = (NULL != p_reflow_profile_1) &&
+                       (NULL != p_reflow_profile_2);
+
+        if ((success) &&
+            (0 == strcmp(p_reflow_profile_1->name, p_reflow_profile_2->name)) &&
+            (p_reflow_profile_1->preheat_temperature == p_reflow_profile_2->preheat_temperature) &&
+            (p_reflow_profile_1->soak_time_s         == p_reflow_profile_2->soak_time_s) &&
+            (p_reflow_profile_1->reflow_temperature  == p_reflow_profile_2->reflow_temperature) &&
+            (p_reflow_profile_1->dwell_time_s        == p_reflow_profile_2->dwell_time_s) &&
+            (p_reflow_profile_1->cooling_temperature == p_reflow_profile_2->cooling_temperature) &&
+            (p_reflow_profile_1->cooling_time_s      == p_reflow_profile_2->cooling_time_s) &&
+            (p_reflow_profile_1->ramp_speed          == p_reflow_profile_2->ramp_speed)) {
+                success = true;
         }
 
         return success;
@@ -167,6 +198,7 @@ bool reflow_profile_save(reflow_profile_t const * const p_reflow_profile)
                 result = nvs_commit(m_nvs_h);
 
                 success = (ESP_OK == result);
+                ESP_LOGI(TAG, "Profile %s was saved", p_reflow_profile->name);
         }
 
         if (needs_close) {
@@ -224,6 +256,7 @@ bool reflow_profile_load(char const * const p_name,
 
         if (success) {
                 *p_reflow_profile = reflow_profile_buffer;
+                ESP_LOGI(TAG, "Profile %s was loaded", reflow_profile_buffer.name);
         }
 
         if (needs_close) {
@@ -253,6 +286,10 @@ bool reflow_profile_delete(char const * const p_name)
                 result = nvs_erase_key(nvs_handle, p_name);
 
                 success = (ESP_OK == result);
+
+                if (success) {
+                        ESP_LOGI(TAG, "Profile %s was deleted", p_name);
+                }
         }
 
         if (needs_close) {
@@ -262,17 +299,110 @@ bool reflow_profile_delete(char const * const p_name)
         return success;
 }
 
-
-bool reflow_profile_use(reflow_profile_t const * const p_reflow_profile)
+/*!
+ * @brief Load and use the profile with the given name
+ *
+ * This function will load a profile from a given name and will set it as
+ * default in the NVS so it is used next time the device boots
+ *
+ * @param               name                pointer to string holding the
+ *                                          name of the profile to load
+ *
+ * @return              bool                Result of the operation
+ * @retval              True                If everything went well
+ * @retval              False               If pointer is null, module is not
+ *                                          initialized, or there was a I/O
+ *                                          error
+ */
+bool reflow_profile_use(char const * name)
 {
-        bool success = ((NULL != p_reflow_profile) && (m_is_initialized));
+        bool success = ((NULL != name) && (m_is_initialized));
+        bool needs_close = false;
+
+        reflow_profile_t buffer_profile;
+        esp_err_t result;
 
         if (success) {
-                success = is_valid_reflow_profile(p_reflow_profile);
+                success = reflow_profile_load(name, &buffer_profile);
         }
 
         if (success) {
-                m_reflow_profile = *p_reflow_profile;
+                m_reflow_profile = buffer_profile;
+
+                result = nvs_open(REFLOW_PROFILE_NVS_NAMESPACE_INIT,
+                                  NVS_READWRITE, &m_nvs_h);
+
+                success = (ESP_OK == result);
+        }
+
+        if (success) {
+                needs_close = true;
+                result = nvs_set_str(m_nvs_h, REFLOW_PROFILE_NVS_DEFAULT_PROFILE_NAME, m_reflow_profile.name);
+
+                success = (ESP_OK == result);
+        }
+
+        if (success) {
+                ESP_LOGI(TAG, "Profile %s is being used and set to default", m_reflow_profile.name);
+
+                result = nvs_commit(m_nvs_h);
+
+                success = (ESP_OK == result);
+        }
+
+        if (needs_close) {
+                nvs_close(m_nvs_h);
+        }
+
+        printf("name %s\n", m_reflow_profile.name);
+        printf("preheat_temperature %d\n", m_reflow_profile.preheat_temperature);
+        printf("soak_time_s %d\n", m_reflow_profile.soak_time_s);
+        printf("reflow_temperature %d\n", m_reflow_profile.reflow_temperature);
+        printf("dwell_time_s %d\n", m_reflow_profile.dwell_time_s);
+        printf("cooling_temperature %d\n", m_reflow_profile.cooling_temperature);
+        printf("cooling_time_s %d\n", m_reflow_profile.cooling_time_s);
+        printf("ramp_speed %d\n", m_reflow_profile.ramp_speed);
+
+        return success;
+}
+
+bool reflow_profile_get_default(char const * p_name)
+{
+
+        bool success = ((NULL != p_name) && (m_is_initialized));
+        bool needs_close = false;
+        esp_err_t result;
+        size_t name_len = REFLOW_PROFILE_NAME_LEN_MAX;
+
+        if (success) {
+                result = nvs_open(REFLOW_PROFILE_NVS_NAMESPACE_INIT,
+                                  NVS_READWRITE,
+                                  &m_nvs_h);
+
+                success = (ESP_OK == result);
+        }
+
+        if (success) {
+                needs_close = true;
+
+                result = nvs_get_str(m_nvs_h,
+                                     REFLOW_PROFILE_NVS_DEFAULT_PROFILE_NAME,
+                                     p_name,
+                                     &name_len);
+
+                success = (ESP_OK == result);
+        }
+
+        if (success) {
+
+                ESP_LOGI(TAG, "Default profile is %s", p_name);
+                result = nvs_commit(m_nvs_h);
+
+                success = (ESP_OK == result);
+        }
+
+        if (needs_close) {
+                nvs_close(m_nvs_h);
         }
 
         return success;
@@ -289,6 +419,7 @@ bool reflow_profile_get_current(reflow_profile_t * const p_reflow_profile)
 
         return success;
 }
+
 /*!
  * @brief
  *
@@ -302,7 +433,6 @@ bool reflow_profile_get_profiles_list(char ** p_profiles, size_t * const p_size)
 {
         bool success = ((NULL != p_profiles) && (NULL != p_size));
         char * buffer = NULL;
-        bool needs_to_free_on_fail = true;
         size_t counter = 0;
         nvs_iterator_t iterator = nvs_entry_find("nvs",
                                                  REFLOW_PROFILE_NVS_NAMESPACE,
@@ -315,8 +445,6 @@ bool reflow_profile_get_profiles_list(char ** p_profiles, size_t * const p_size)
                 iterator = nvs_entry_next(iterator);
                 // adding space for the name but also for the \n character
                 counter += strlen(info.key) + 1;
-
-                printf("key '%s', type '%d' \n", info.key, info.type);
         }
 
         if (success) {
@@ -332,7 +460,6 @@ bool reflow_profile_get_profiles_list(char ** p_profiles, size_t * const p_size)
         }
 
         if (success) {
-                needs_to_free_on_fail = true;
                 strcpy(buffer, "");
         }
 
@@ -353,20 +480,18 @@ bool reflow_profile_get_profiles_list(char ** p_profiles, size_t * const p_size)
         if (success) {
                 *p_profiles = buffer;
                 *p_size = counter;
+                ESP_LOGI(TAG, "Profiles list %s", buffer);
         }
-
-
-        printf("%s %d\n", buffer, counter);
 
         return success;
 }
 
-bool reflow_profile_get_default(reflow_profile_t * const p_reflow_profile)
+bool reflow_profile_get_factory_profile(reflow_profile_t * const p_reflow_profile)
 {
         bool success = (NULL != p_reflow_profile);
 
         if (success) {
-                *p_reflow_profile = m_reflow_profile_default;
+                *p_reflow_profile = m_reflow_profile_factory;
         }
 
         return success;
@@ -421,7 +546,7 @@ static bool is_profile_nvs_initialized(void)
         uint8_t initialized = 0;
         bool needs_close = false;
         bool success;
-        esp_err_t result = nvs_open(REFLOW_PROFILE_NVS_NAMESPACE,
+        esp_err_t result = nvs_open(REFLOW_PROFILE_NVS_NAMESPACE_INIT,
                                     NVS_READWRITE,
                                     &m_nvs_h);
 
@@ -431,7 +556,6 @@ static bool is_profile_nvs_initialized(void)
                 result = nvs_get_u8(m_nvs_h,
                             REFLOW_PROFILE_NVS_INITIALIZED,
                             &initialized);
-                printf("Restart counter = %d\n", initialized);
 
                 needs_close = true;
         }
@@ -454,8 +578,8 @@ static bool is_profile_nvs_initialized(void)
 static bool initialize_profile_nvs(void)
 {
         bool needs_close = false;
-        size_t const profile_size = sizeof(m_reflow_profile_default);
-        esp_err_t result = nvs_open(REFLOW_PROFILE_NVS_NAMESPACE,
+        size_t const profile_size = sizeof(m_reflow_profile_factory);
+        esp_err_t result = nvs_open(REFLOW_PROFILE_NVS_NAMESPACE_INIT,
                                     NVS_READWRITE, &m_nvs_h);
         bool success;
 
@@ -470,20 +594,45 @@ static bool initialize_profile_nvs(void)
         }
 
         if (success) {
+                result = nvs_set_str(m_nvs_h,
+                                     REFLOW_PROFILE_NVS_DEFAULT_PROFILE_NAME,
+                                     REFLOW_PROFILE_DEFAULT_NAME);
+
+                success = (ESP_OK == result);
+        }
+
+        if (success) {
+                result = nvs_commit(m_nvs_h);
+                success = (ESP_OK == result);
+        }
+
+        if (needs_close) {
+                nvs_close(m_nvs_h);
+                needs_close = false;
+        }
+
+        if (success) {
+                result = nvs_open(REFLOW_PROFILE_NVS_NAMESPACE,
+                                  NVS_READWRITE, &m_nvs_h);
+                success = (ESP_OK == result);
+        }
+
+        if (success) {
+                needs_close = true;
                 result = nvs_set_blob(m_nvs_h,
-                                      m_reflow_profile_default.name,
-                                      &m_reflow_profile_default,
+                                      m_reflow_profile_factory.name,
+                                      &m_reflow_profile_factory,
                                       profile_size);
 
                 success = (ESP_OK == result);
         }
 
-        if (needs_close) {
+        if (success) {
                 result = nvs_commit(m_nvs_h);
+                success = (ESP_OK == result);
+        }
 
-                if (ESP_OK != result) {
-                        assert(result && "Couldn't commit changes to nvs");
-                }
+        if (needs_close) {
                 nvs_close(m_nvs_h);
         }
 
@@ -493,7 +642,7 @@ static bool initialize_profile_nvs(void)
 static bool add_fake_profiles(void)
 {
         bool success = true;
-        reflow_profile_t fake_profile = m_reflow_profile_default;
+        reflow_profile_t fake_profile = m_reflow_profile_factory;
         char fakename[11] = "fake_namex\0";
         uint8_t i = 0;
 
@@ -506,11 +655,11 @@ static bool add_fake_profiles(void)
         return success;
 }
 
-static void print_namespace_contents(void)
+static void print_namespace_contents(char * namespace)
 {
         nvs_entry_info_t info;
         nvs_iterator_t iterator = nvs_entry_find("nvs",
-                                                 REFLOW_PROFILE_NVS_NAMESPACE,
+                                                 namespace,
                                                  NVS_TYPE_ANY);
         while (NULL != iterator) {
                 nvs_entry_info(iterator, &info);

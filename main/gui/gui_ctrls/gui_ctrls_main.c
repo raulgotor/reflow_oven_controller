@@ -95,13 +95,22 @@ void gui_ctrls_main_refresh(void)
         char temperature_str[10];
         int16_t temperature;
         bool success;
+        int16_t meter_value_max;
+        reflow_profile_t reflow_profile;
 
         success = thermocouple_get_temperature(0, &temperature);
 
         if (success) {
+                success = reflow_profile_get_current(&reflow_profile);
+        }
+
+        if (success) {
+                meter_value_max = (int16_t)reflow_profile.reflow_temperature;
+
                 snprintf(temperature_str, 9, "%dº", temperature);
                 lv_label_set_text(p_temp_label, temperature_str);
                 lv_lmeter_set_value(p_lmeter, temperature);
+                lv_lmeter_set_range(p_lmeter, 0, meter_value_max);
         }
 }
 
