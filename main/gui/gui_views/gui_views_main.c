@@ -40,6 +40,9 @@
  *******************************************************************************
  */
 
+#define GUI_RUN_TEXT                        "Run"
+#define GUI_DEFAULT_PROFILE_TEXT            "Default Profile"
+
 /*
  *******************************************************************************
  * Data types                                                                  *
@@ -84,14 +87,14 @@ void gui_views_main(lv_obj_t * const p_parent)
         // Labels
 
         p_profile_label = lv_label_create(p_parent, NULL);
-        lv_label_set_text(p_profile_label, "PROFILE: Sn60Pb40");
+        lv_label_set_text(p_profile_label, GUI_DEFAULT_PROFILE_TEXT);
         lv_label_set_style(p_profile_label, LV_LABEL_STYLE_MAIN, &m_style);
 
         p_state_label = lv_label_create(p_parent, NULL);
         lv_label_set_style(p_state_label, LV_LABEL_STYLE_MAIN, &m_style);
 
         p_start_button_label = lv_label_create(p_start_button, NULL);
-        lv_label_set_text(p_start_button_label, LV_SYMBOL_PLAY "Run");
+        lv_label_set_text(p_start_button_label, LV_SYMBOL_PLAY GUI_RUN_TEXT);
 
         p_temp_label = lv_label_create(p_parent, NULL);
         lv_label_set_align(p_temp_label, LV_LABEL_ALIGN_CENTER);

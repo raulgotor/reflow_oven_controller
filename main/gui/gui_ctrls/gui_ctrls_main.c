@@ -93,6 +93,7 @@ void gui_ctrls_main_init(void)
 void gui_ctrls_main_refresh(void)
 {
         char temperature_str[10];
+        char const * profile_name;
         int16_t temperature;
         bool success;
         int16_t meter_value_max;
@@ -106,9 +107,11 @@ void gui_ctrls_main_refresh(void)
 
         if (success) {
                 meter_value_max = (int16_t)reflow_profile.reflow_temperature;
+                profile_name = reflow_profile.name;
 
                 snprintf(temperature_str, 9, "%dº", temperature);
                 lv_label_set_text(p_temp_label, temperature_str);
+                lv_label_set_text(p_profile_label, profile_name);
                 lv_lmeter_set_value(p_lmeter, temperature);
                 lv_lmeter_set_range(p_lmeter, 0, meter_value_max);
         }

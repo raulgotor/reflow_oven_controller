@@ -87,16 +87,20 @@ void gui_views_profile(lv_obj_t * const p_parent)
         // Add labels
 
         p_new_button_label = lv_label_create(p_new_button, NULL);
-        lv_label_set_text(p_new_button_label, LV_SYMBOL_OK BUTTON_TEXT_NEW);
+        lv_label_set_text(p_new_button_label, LV_SYMBOL_OK GUI_BUTTON_TEXT_NEW);
+
         p_edit_button_label = lv_label_create(p_edit_button, NULL);
-        lv_label_set_text(p_edit_button_label, LV_SYMBOL_EDIT BUTTON_TEXT_EDIT);
+        lv_label_set_text(p_edit_button_label,
+                          LV_SYMBOL_EDIT GUI_BUTTON_TEXT_EDIT);
+
         p_delete_button_label = lv_label_create(p_delete_button, NULL);
-        lv_label_set_text(p_delete_button_label, LV_SYMBOL_TRASH BUTTON_TEXT_DELETE);
+        lv_label_set_text(p_delete_button_label,
+                          LV_SYMBOL_TRASH GUI_BUTTON_TEXT_DELETE);
 
         // Configure dropdown
 
         p_dropdown_label = lv_label_create(p_parent, NULL);
-        lv_label_set_text(p_dropdown_label, LABEL_TEXT_PROFILE);
+        lv_label_set_text(p_dropdown_label, GUI_LABEL_TEXT_PROFILE);
 
         p_dropdown = lv_ddlist_create(p_parent, NULL);
 

@@ -22,15 +22,17 @@
  *******************************************************************************
  */
 
-#define BUTTON_TEXT_NEW                         "New"
-#define BUTTON_TEXT_EDIT                        "Edit"
-#define BUTTON_TEXT_DELETE                      "Delete"
+#define GUI_BUTTON_TEXT_NEW                 "New"
+#define GUI_BUTTON_TEXT_NEW_PROFILE         "New Profile"
+#define GUI_BUTTON_TEXT_EDIT                "Edit"
+#define GUI_BUTTON_TEXT_EDIT_PROFILE        "Edit Profile"
+#define GUI_BUTTON_TEXT_CANCEL              "Cancel"
+#define GUI_BUTTON_TEXT_DELETE              "Delete"
 
-#define LABEL_TEXT_PROFILE                      "Profile:"
+#define GUI_LABEL_TEXT_PROFILE              "Profile:"
 
-#define MESSAGE_TEXT_DELETE_PROFILE             "Are you sure you want to delete this profile?"
+#define GUI_MESSAGE_TEXT_DELETE_PROFILE     "Are you sure you want to delete this profile?"
 
-#define BUTTON_TEXT_CANCEL                      "Cancel"
 
 /*
  *******************************************************************************
