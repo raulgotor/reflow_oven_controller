@@ -1,11 +1,11 @@
 /*!
  *******************************************************************************
- * @file user_interface.h
+ * @file gui_views_main.h
  *
  * @brief 
  *
  * @author Raúl Gotor (raulgotor@gmail.com)
- * @date 19.09.21
+ * @date 17.10.21
  *
  * @par
  * COPYRIGHT NOTICE: (c) 2021 Raúl Gotor
@@ -13,9 +13,8 @@
  *******************************************************************************
  */
 
-
-#ifndef GUI_H
-#define GUI_H
+#ifndef GUI_VIEWS_MAIN_H
+#define GUI_VIEWS_MAIN_H
 
 /*
  *******************************************************************************
@@ -30,6 +29,13 @@
  *******************************************************************************
  */
 
+lv_obj_t * p_profile_label;
+lv_obj_t * p_start_button;
+lv_obj_t * p_temp_label;
+lv_obj_t * p_lmeter;
+lv_obj_t * p_state_label;
+lv_obj_t * p_start_button_label;
+
 /*
  *******************************************************************************
  * Public Constants                                                            *
@@ -43,13 +49,6 @@
  *******************************************************************************
  */
 
-bool ui_init(void);
+void gui_views_main(lv_obj_t * const p_parent);
 
-bool gui_configure_main_scr(void);
-
-void gui_configure_buttons_for_state(state_machine_state_text_t const state);
-
-void gui_configure_for_profile(reflow_profile_t const profile);
-
-
-#endif //GUI_H
+#endif //GUI_VIEWS_MAIN_H

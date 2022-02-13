@@ -40,7 +40,7 @@
 #include "reflow_profile.h"
 #include "state_machine/states/state_machine_states.h"
 #include "state_machine/state_machine.h"
-#include "gui.h"
+#include "gui/gui.h"
 #include "thermocouple.h"
 #include "reflow_timer.h"
 
@@ -93,7 +93,6 @@ static lv_color_t buf1[DISP_BUF_SIZE];
 static lv_color_t buf2[DISP_BUF_SIZE];
 static lv_disp_buf_t display_buffer;
 
-
 /*
  *******************************************************************************
  * Public Function Bodies                                                      *
@@ -103,17 +102,16 @@ static lv_disp_buf_t display_buffer;
 void app_main()
 {
 
+        // @note: failing to initialize hardware will assert
         hardware_init();
 
         (void)display_init();
-
-        // nvs_init();
 
         reflow_timer_init();
 
         reflow_profile_init();
 
-        ui_init();
+        gui_init();
 
         state_machine_init();
 
@@ -135,16 +133,16 @@ void app_main()
 
 static void nvs_init()
 {
+        esp_err_t result = nvs_flash_init();
 
-        esp_err_t err = nvs_flash_init();
-        if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        if ((ESP_ERR_NVS_NO_FREE_PAGES == result) ||
+            (ESP_ERR_NVS_NEW_VERSION_FOUND == result)) {
                 // NVS partition was truncated and needs to be erased
                 // Retry nvs_flash_init
                 ESP_ERROR_CHECK(nvs_flash_erase());
-                err = nvs_flash_init();
+                result = nvs_flash_init();
         }
-        ESP_ERROR_CHECK(err);
-
+        ESP_ERROR_CHECK(result);
 }
 
 static void hardware_init(void)
@@ -154,6 +152,8 @@ static void hardware_init(void)
         ili9341_init();
         tp_spi_init();
         xpt2046_init();
+        nvs_init();
+
 }
 
 static bool display_init(void)

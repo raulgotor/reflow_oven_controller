@@ -1,11 +1,11 @@
 /*!
  *******************************************************************************
- * @file reflow_timer.h
+ * @file gui.h
  *
  * @brief 
  *
  * @author Raúl Gotor (raulgotor@gmail.com)
- * @date 26.09.21
+ * @date 19.09.21
  *
  * @par
  * COPYRIGHT NOTICE: (c) 2021 Raúl Gotor
@@ -13,8 +13,9 @@
  *******************************************************************************
  */
 
-#ifndef REFLOW_TIMER_H
-#define REFLOW_TIMER_H
+
+#ifndef GUI_H
+#define GUI_H
 
 /*
  *******************************************************************************
@@ -35,6 +36,11 @@
  *******************************************************************************
  */
 
+lv_style_t m_style;
+lv_style_t m_big_style;
+lv_style_t m_style_tv_btn_bg;
+lv_style_t m_style_tv_btn_rel;
+lv_style_t m_style_tv_btn_pr;
 
 /*
  *******************************************************************************
@@ -42,11 +48,6 @@
  *******************************************************************************
  */
 
-bool reflow_timer_init(void);
+void gui_init(void);
 
-bool reflow_timer_start_timer(uint32_t const period_s, state_machine_state_text_t const state);
-
-bool reflow_timer_stop_timer(void);
-
-
-#endif //REFLOW_TIMER_H
+#endif //GUI_H

@@ -24,12 +24,14 @@
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/timers.h"
+#include "lvgl.h"
+
 #include "reflow_profile.h"
 #include "state_machine/states/state_machine_states.h"
 #include "state_machine/state_machine.h"
 #include "state_machine/state_machine_task.h"
+#include "gui/gui_ctrls/gui_ctrls_main.h"
 #include "reflow_timer.h"
-#include "gui.h"
 
 /*
  *******************************************************************************
@@ -90,7 +92,7 @@ void state_machine_state_idle(void)
         ESP_LOGI(TAG, "State Idle");
 
         if (success) {
-                gui_configure_buttons_for_state(state);
+                gui_ctrls_main_update_buttons(state);
                 success = state_machine_wait_for_event(portMAX_DELAY, &event);
 
         }
@@ -134,7 +136,7 @@ void state_machine_state_heating(void)
         reflow_profile_t profile;
 
         if (success) {
-                gui_configure_buttons_for_state(state);
+                gui_ctrls_main_update_buttons(state);
                 success = reflow_profile_get_current(&profile);
         }
 
@@ -180,12 +182,12 @@ void state_machine_state_soak(void)
         reflow_profile_t profile;
 
         if (success) {
-                gui_configure_buttons_for_state(state);
+                gui_ctrls_main_update_buttons(state);
                 success = reflow_profile_get_current(&profile);
         }
 
         if (success) {
-                success = reflow_timer_start_timer(profile.soak_time_ms, state);
+                success = reflow_timer_start_timer(profile.soak_time_s, state);
         }
 
         if (success) {
@@ -226,7 +228,7 @@ void state_machine_state_reflow(void)
         reflow_profile_t profile;
 
         if (success) {
-                gui_configure_buttons_for_state(state);
+                gui_ctrls_main_update_buttons(state);
                 success = reflow_profile_get_current(&profile);
         }
 
@@ -275,12 +277,12 @@ void state_machine_state_dwell(void)
         reflow_profile_t profile;
 
         if (success) {
-                gui_configure_buttons_for_state(state);
+                gui_ctrls_main_update_buttons(state);
                 success = reflow_profile_get_current(&profile);
         }
 
         if (success) {
-                success = reflow_timer_start_timer(profile.dwell_time_ms, state);
+                success = reflow_timer_start_timer(profile.dwell_time_s, state);
         }
 
         if (success) {
@@ -323,7 +325,7 @@ void state_machine_state_cooling(void)
         bool success = state_machine_get_state(&state);
 
         if (success) {
-                gui_configure_buttons_for_state(state);
+                gui_ctrls_main_update_buttons(state);
         }
 
         if (success) {
@@ -366,7 +368,7 @@ void state_machine_state_error(void)
         state_machine_state_text_t state;
         bool success = true;
 
-        gui_configure_buttons_for_state(STATE_MACHINE_STATE_ERROR);
+        gui_ctrls_main_update_buttons(STATE_MACHINE_STATE_ERROR);
 
         (void)clean_up_device();
         // TODO: display_ui_advice();

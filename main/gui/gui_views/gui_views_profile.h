@@ -1,11 +1,11 @@
 /*!
  *******************************************************************************
- * @file reflow_timer.h
+ * @file gui_views_profile.h
  *
  * @brief 
  *
  * @author Raúl Gotor (raulgotor@gmail.com)
- * @date 26.09.21
+ * @date 17.10.21
  *
  * @par
  * COPYRIGHT NOTICE: (c) 2021 Raúl Gotor
@@ -13,8 +13,8 @@
  *******************************************************************************
  */
 
-#ifndef REFLOW_TIMER_H
-#define REFLOW_TIMER_H
+#ifndef GUI_VIEWS_PROFILE_H
+#define GUI_VIEWS_PROFILE_H
 
 /*
  *******************************************************************************
@@ -35,6 +35,16 @@
  *******************************************************************************
  */
 
+lv_obj_t * p_dropdown_label;
+lv_obj_t * p_new_button_label;
+lv_obj_t * p_edit_button_label;
+lv_obj_t * p_delete_button_label;
+
+lv_obj_t * p_new_button;
+lv_obj_t * p_edit_button;
+lv_obj_t * p_delete_button;
+
+lv_obj_t * p_dropdown;
 
 /*
  *******************************************************************************
@@ -42,11 +52,6 @@
  *******************************************************************************
  */
 
-bool reflow_timer_init(void);
+void gui_views_profile(lv_obj_t * const p_parent);
 
-bool reflow_timer_start_timer(uint32_t const period_s, state_machine_state_text_t const state);
-
-bool reflow_timer_stop_timer(void);
-
-
-#endif //REFLOW_TIMER_H
+#endif //GUI_VIEWS_PROFILE_H

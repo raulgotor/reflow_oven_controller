@@ -4,11 +4,11 @@
  *
  * @brief 
  *
- * @author Raúl Gotor (raul.gotor@midge-medical.com)
+ * @author Raúl Gotor (raulgotor@gmail.com)
  * @date 18.09.21
  *
  * @par
- * COPYRIGHT NOTICE: (c) 2021 Midge Medical GmbH
+ * COPYRIGHT NOTICE: (c) 2021 Raúl Gotor
  * All rights reserved.
  *******************************************************************************
  */
@@ -62,7 +62,7 @@
 
 static void thermocouple_update_temperature(void);
 
-static void thremocouple_task(void * pvParameters);
+static void thermocouple_task(void * pvParameters);
 
 /*
  *******************************************************************************
@@ -96,7 +96,7 @@ bool thermocouple_init(void)
         BaseType_t result = pdPASS;
 
         if (success) {
-                result = xTaskCreate(thremocouple_task,
+                result = xTaskCreate(thermocouple_task,
                                      "thermocouple_task",
                                      configMINIMAL_STACK_SIZE,
                                      NULL,
@@ -108,12 +108,10 @@ bool thermocouple_init(void)
                 }
         }
 
-        if (success) {
-
-        }
 
         if (success) {
                 thermocouple_update_temperature();
+                m_is_initialized = true;
         }
 
         return success;
@@ -217,7 +215,7 @@ static void thermocouple_update_temperature(void)
  *******************************************************************************
  */
 
-void thremocouple_task(void * pvParameters)
+void thermocouple_task(void * pvParameters)
 {
 #if TEMP_SIMULATION
         m_temperature[0] = 27;

@@ -1,11 +1,11 @@
 /*!
  *******************************************************************************
- * @file reflow_timer.h
+ * @file gui_ctrls_main.h
  *
  * @brief 
  *
  * @author Raúl Gotor (raulgotor@gmail.com)
- * @date 26.09.21
+ * @date 17.10.21
  *
  * @par
  * COPYRIGHT NOTICE: (c) 2021 Raúl Gotor
@@ -13,8 +13,8 @@
  *******************************************************************************
  */
 
-#ifndef REFLOW_TIMER_H
-#define REFLOW_TIMER_H
+#ifndef GUI_CTRLS_MAIN_H
+#define GUI_CTRLS_MAIN_H
 
 /*
  *******************************************************************************
@@ -42,11 +42,13 @@
  *******************************************************************************
  */
 
-bool reflow_timer_init(void);
+void gui_ctrls_main_init(void);
 
-bool reflow_timer_start_timer(uint32_t const period_s, state_machine_state_text_t const state);
+void gui_ctrls_main_refresh(void);
 
-bool reflow_timer_stop_timer(void);
+void gui_ctrls_main_update_buttons(state_machine_state_text_t const state);
+
+void gui_ctrls_main_button_event_cb(lv_obj_t * p_object, lv_event_t event);
 
 
-#endif //REFLOW_TIMER_H
+#endif //GUI_CTRLS_MAIN_H
