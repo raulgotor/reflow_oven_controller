@@ -118,7 +118,7 @@ void app_main()
 
         success = success && state_machine_init();
 
-        success = success && (HEATER_ERROR_SUCCESS == heater_init());
+        success = success && (HEATER_ERROR_SUCCESS == heater_init(0));
 
         success = success && thermocouple_init();
 

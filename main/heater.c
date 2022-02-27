@@ -18,16 +18,20 @@
  * #include Statements                                                         *
  *******************************************************************************
  */
+#define NDEBUG
 
 #include <stddef.h>
 #include <stdint.h>
+#include <assert.h>
 #include <stdbool.h>
+#include <printf.h>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
 
-#include "driver/gpio.h"
+#include "gpio_types.h"
+#include "driver/gpio_spy.h"
 
 #include "thermocouple.h"
 #include "heater.h"
@@ -38,19 +42,17 @@
  *******************************************************************************
  */
 
-//TODO: define which pin
-#define HEATER_ACTIVE_HIGH_GPIO_PIN              (10)
+#if (defined(TEST_COMPILATION) && (1 == TEST_COMPILATION))
+#define FOREVER 0
+#else
+#define FOREVER 1
+#endif
 
 /*
  *******************************************************************************
  * Data types                                                                  *
  *******************************************************************************
  */
-
-typedef struct {
-        int16_t target;
-        bool heater_running;
-} heater_msg_t;
 
 /*
  *******************************************************************************
@@ -86,13 +88,19 @@ static heater_error_t heater_send_msg(heater_msg_t const message);
 
 static bool m_is_initialized = false;
 
+static bool m_heater_running = false;
+
 static int16_t m_heater_target = 0;
 
-static int16_t m_target_max_degrees = 300;
+static int16_t m_target_max_degrees = 270;
+
+static int16_t m_target_min_degrees = 0;
 
 static TaskHandle_t heater_task_h = NULL;
 
-static xQueueHandle heater_queue_h = NULL;
+static xQueueHandle m_heater_queue_h = NULL;
+
+static heater_temp_getter_t m_pf_temperature_getter = NULL;
 
 /*
  *******************************************************************************
@@ -100,25 +108,30 @@ static xQueueHandle heater_queue_h = NULL;
  *******************************************************************************
  */
 
-heater_error_t heater_init(void)
+heater_error_t heater_init(heater_temp_getter_t const p_f_temp_getter)
 {
         heater_error_t success = HEATER_ERROR_SUCCESS;
         int result;
 
+        //TODO configure hardware!
+
         if (m_is_initialized) {
                 success = HEATER_ERROR_GENERAL_ERROR;
+        } else if (NULL == p_f_temp_getter) {
+                success = HEATER_ERROR_BAD_PARAMETER;
         } else {
-                m_heater_target = 0;
-                m_is_initialized = true;
+                m_heater_queue_h = xQueueCreate(3, sizeof(heater_msg_t *));
 
-                heater_queue_h = xQueueCreate(3, sizeof(heater_msg_t));
-
-                if (NULL == heater_queue_h) {
+                if (NULL == m_heater_queue_h) {
                         success = HEATER_ERROR_GENERAL_ERROR;
                 }
         }
 
         if (HEATER_ERROR_SUCCESS == success) {
+
+                m_heater_target = 0;
+                m_heater_running = false;
+                m_pf_temperature_getter = p_f_temp_getter;
 
                 result = xTaskCreate(
                                 heater_task,
@@ -126,11 +139,16 @@ heater_error_t heater_init(void)
                                 configMINIMAL_STACK_SIZE,
                                 NULL,
                                 1,
-                                heater_task_h);
+                                &heater_task_h);
 
                 if (pdPASS != result) {
                         success = HEATER_ERROR_GENERAL_ERROR;
                 }
+        }
+
+        if (HEATER_ERROR_SUCCESS == success) {
+
+                m_is_initialized = true;
         }
 
         return success;
@@ -142,7 +160,8 @@ heater_error_t heater_set_target(int16_t const degrees)
 
         if (!m_is_initialized) {
                 success = HEATER_ERROR_NOT_INITIALIZED;
-        } else if (m_target_max_degrees < degrees) {
+        } else if ((m_target_max_degrees < degrees) ||
+                   (m_target_min_degrees > degrees)) {
                 success = HEATER_ERROR_BAD_PARAMETER;
         }
         
@@ -208,19 +227,31 @@ heater_error_t heater_deinit(void)
         heater_error_t success = HEATER_ERROR_SUCCESS;
 
         if (!m_is_initialized) {
-                success = HEATER_ERROR_GENERAL_ERROR;
+                success = HEATER_ERROR_NOT_INITIALIZED;
         } else {
                 m_heater_target = 0;
+                printf("Disabling heater\n");
+                m_heater_running = false;
                 m_is_initialized = false;
-                vQueueDelete(heater_queue_h);
-                heater_queue_h = NULL;
-                vTaskDelete(heater_task_h);
+                if (NULL != m_heater_queue_h) {
+                        vQueueDelete(m_heater_queue_h);
+                }
+                m_heater_queue_h = NULL;
+                if (NULL != heater_task_h) {
+                        vTaskDelete(heater_task_h);
+                }
                 heater_task_h = NULL;
         }
 
         return success;
 }
 
+bool heater_is_running(void)
+{
+        printf("Getting heater heater %d\n", m_heater_running);
+
+        return m_heater_running;
+}
 
 /*
  *******************************************************************************
@@ -244,7 +275,7 @@ static heater_error_t heater_send_msg(heater_msg_t const message)
         heater_msg_t * p_message = NULL;
         BaseType_t result;
 
-        p_message = pvPortMalloc(sizeof(heater_msg_t *));
+        p_message = pvPortMalloc(sizeof(heater_msg_t));
 
         if (NULL == p_message) {
                 success = HEATER_ERROR_OOM;
@@ -254,7 +285,7 @@ static heater_error_t heater_send_msg(heater_msg_t const message)
                 p_message->heater_running = message.heater_running;
                 p_message->target = message.target;
 
-                result = xQueueSend(heater_queue_h, &p_message, 0);
+                result = xQueueSend(m_heater_queue_h, &p_message, 0);
 
                 if (pdPASS != result) {
                         success = HEATER_ERROR_GENERAL_ERROR;
@@ -271,31 +302,28 @@ static heater_error_t heater_send_msg(heater_msg_t const message)
         return success;
 }
 
-
 /*
  *******************************************************************************
  * Interrupt Service Routines / Tasks / Thread Main Functions                  *
  *******************************************************************************
  */
 
-void heater_task(void * pvParameters)
+static void heater_task(void * pvParameters)
 {
         heater_msg_t * p_in_message = NULL;
-        int16_t target_temperature = 0;
-        bool heater_running = false;
-        int16_t temperature;
+        int16_t temperature = 0;
         BaseType_t result;
         bool success;
 
-        for (;;) {
+        do {
 
-                result = xQueueReceive(heater_queue_h, &p_in_message, pdMS_TO_TICKS(100));
+                result = xQueueReceive(m_heater_queue_h, &p_in_message, pdMS_TO_TICKS(100));
 
                 if ((pdTRUE == result) && (NULL != p_in_message)) {
-                        heater_running = p_in_message->heater_running;
-                        target_temperature = p_in_message->target;
+                        m_heater_running = p_in_message->heater_running;
+                        m_heater_target = p_in_message->target;
 
-                        if (!heater_running) {
+                        if (!m_heater_running) {
                                 heater_power_off();
                         }
 
@@ -303,9 +331,9 @@ void heater_task(void * pvParameters)
                         p_in_message = NULL;
                 }
 
-                if (heater_running) {
+                if (m_heater_running) {
 
-                        success = thermocouple_get_temperature(
+                        success = m_pf_temperature_getter(
                                         THERMOCOUPLE_ID_0,
                                         &temperature);
 
@@ -314,11 +342,14 @@ void heater_task(void * pvParameters)
                                 assert(0);
                         }
 
-                        if (target_temperature < m_heater_target) {
+                        if (m_heater_target < temperature) {
                                 heater_power_off();
                         } else {
                                 heater_power_on();
                         }
                 }
-        }
+
+        // Will run forever in production, but only once in unit testing
+        } while (FOREVER);
+
 }

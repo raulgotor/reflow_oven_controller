@@ -1,20 +1,20 @@
 /*!
  *******************************************************************************
- * @file thermocouple.h
+ * @file task.h
  *
  * @brief 
  *
- * @author Raúl Gotor (raulgotor@gmail.com)
- * @date 18.09.21
+ * @author Raúl Gotor (raulgotor@gmail..com)
+ * @date 17.02.22
  *
  * @par
- * COPYRIGHT NOTICE: (c) 2021 Raúl Gotor
+ * COPYRIGHT NOTICE: (c) 2022 Raúl Gotor
  * All rights reserved.
  *******************************************************************************
  */
 
-#ifndef THERMOCOUPLE_H
-#define THERMOCOUPLE_H
+#ifndef TASK_H
+#define TASK_H
 
 #ifdef __cplusplus
 extern "C"
@@ -34,21 +34,6 @@ extern "C"
  *******************************************************************************
  */
 
-typedef enum
-{
-        THERMOCOUPLE_REFRESH_RATE_1_HZ = 0,
-        THERMOCOUPLE_REFRESH_RATE_100_HZ,
-        THERMOCOUPLE_REFRESH_RATE_1_KHZ,
-        THERMOCOUPLE_REFRESH_RATE_COUNT
-} thermocouple_refresh_rate_t;
-
-typedef enum
-{
-        THERMOCOUPLE_ID_0 = 0,
-        THERMOCOUPLE_ID_1,
-        THERMOCOUPLE_ID_COUNT
-} thermocouple_id_t;
-
 /*
  *******************************************************************************
  * Public Constants                                                            *
@@ -62,14 +47,20 @@ typedef enum
  *******************************************************************************
  */
 
-bool thermocouple_init(void);
+BaseType_t xTaskCreate(
+                TaskFunction_t pvTaskCode,
+                const char * const pcName,
+                const uint32_t usStackDepth,
+                void * const pvParameters,
+                UBaseType_t uxPriority,
+                TaskHandle_t * const pvCreatedTask);
 
-bool thermocouple_set_referesh_rate(thermocouple_refresh_rate_t const refresh_rate);
+void vTaskDelete( TaskHandle_t xTaskToDelete );
 
-bool thermocouple_get_temperature(thermocouple_id_t const id, int16_t * const temperature);
+void task_spy_get_task_function(TaskFunction_t * p_task_function);
 
 #ifdef __cplusplus
 }
 #endif // #ifdef __cplusplus
 
-#endif //THERMOCOUPLE_H
+#endif //TASK_H

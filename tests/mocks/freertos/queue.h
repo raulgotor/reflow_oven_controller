@@ -1,20 +1,20 @@
 /*!
  *******************************************************************************
- * @file thermocouple.h
+ * @file queue.h
  *
  * @brief 
  *
- * @author Raúl Gotor (raulgotor@gmail.com)
- * @date 18.09.21
+ * @author Raúl Gotor (raulgotor@gmail..com)
+ * @date 17.02.22
  *
  * @par
- * COPYRIGHT NOTICE: (c) 2021 Raúl Gotor
+ * COPYRIGHT NOTICE: (c) 2022 Raúl Gotor
  * All rights reserved.
  *******************************************************************************
  */
 
-#ifndef THERMOCOUPLE_H
-#define THERMOCOUPLE_H
+#ifndef QUEUE_H
+#define QUEUE_H
 
 #ifdef __cplusplus
 extern "C"
@@ -34,21 +34,6 @@ extern "C"
  *******************************************************************************
  */
 
-typedef enum
-{
-        THERMOCOUPLE_REFRESH_RATE_1_HZ = 0,
-        THERMOCOUPLE_REFRESH_RATE_100_HZ,
-        THERMOCOUPLE_REFRESH_RATE_1_KHZ,
-        THERMOCOUPLE_REFRESH_RATE_COUNT
-} thermocouple_refresh_rate_t;
-
-typedef enum
-{
-        THERMOCOUPLE_ID_0 = 0,
-        THERMOCOUPLE_ID_1,
-        THERMOCOUPLE_ID_COUNT
-} thermocouple_id_t;
-
 /*
  *******************************************************************************
  * Public Constants                                                            *
@@ -62,14 +47,39 @@ typedef enum
  *******************************************************************************
  */
 
-bool thermocouple_init(void);
+/**
+ * Generic version of the function used to create a queue using dynamic memory
+ * allocation.  This is called by other functions and macros that create other
+ * RTOS objects that use the queue structure as their base.
+ */
+QueueHandle_t xQueueGenericCreate(const UBaseType_t uxQueueLength,
+                                  const UBaseType_t uxItemSize,
+                                  const uint8_t ucQueueType);
 
-bool thermocouple_set_referesh_rate(thermocouple_refresh_rate_t const refresh_rate);
 
-bool thermocouple_get_temperature(thermocouple_id_t const id, int16_t * const temperature);
+BaseType_t xQueueGenericSend(QueueHandle_t xQueue,
+                             const void * const pvItemToQueue,
+                             TickType_t xTicksToWait,
+                             const BaseType_t xCopyPosition);
+
+void vQueueDelete(QueueHandle_t xQueue);
+
+BaseType_t xQueueReceive(QueueHandle_t xQueue,
+                         void * const pvBuffer,
+                         TickType_t xTicksToWait);
+
+
+#define xQueueSend( xQueue, pvItemToQueue, xTicksToWait ) \
+    xQueueGenericSend( ( xQueue ), ( pvItemToQueue ), ( xTicksToWait ), 0 )
+
+void queue_spy_set_queue_full(bool is_full);
+
+void queue_spy_create(void);
+
+void queue_spy_destroy(void);
 
 #ifdef __cplusplus
 }
 #endif // #ifdef __cplusplus
 
-#endif //THERMOCOUPLE_H
+#endif //QUEUE_H

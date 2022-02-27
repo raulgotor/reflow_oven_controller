@@ -1,25 +1,27 @@
 /*!
  *******************************************************************************
- * @file thermocouple.h
+ * @file gpio.h
  *
  * @brief 
  *
  * @author Raúl Gotor (raulgotor@gmail.com)
- * @date 18.09.21
+ * @date 17.02.22
  *
  * @par
- * COPYRIGHT NOTICE: (c) 2021 Raúl Gotor
+ * COPYRIGHT NOTICE: (c) 2022 Raúl Gotor
  * All rights reserved.
  *******************************************************************************
  */
 
-#ifndef THERMOCOUPLE_H
-#define THERMOCOUPLE_H
+#ifndef GPIO_SPY_H
+#define GPIO_SPY_H
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif // #ifdef __cplusplus
+
+#include "driver/gpio.h"
 
 /*
  *******************************************************************************
@@ -34,20 +36,7 @@ extern "C"
  *******************************************************************************
  */
 
-typedef enum
-{
-        THERMOCOUPLE_REFRESH_RATE_1_HZ = 0,
-        THERMOCOUPLE_REFRESH_RATE_100_HZ,
-        THERMOCOUPLE_REFRESH_RATE_1_KHZ,
-        THERMOCOUPLE_REFRESH_RATE_COUNT
-} thermocouple_refresh_rate_t;
-
-typedef enum
-{
-        THERMOCOUPLE_ID_0 = 0,
-        THERMOCOUPLE_ID_1,
-        THERMOCOUPLE_ID_COUNT
-} thermocouple_id_t;
+typedef int esp_err_t;
 
 /*
  *******************************************************************************
@@ -62,14 +51,16 @@ typedef enum
  *******************************************************************************
  */
 
-bool thermocouple_init(void);
+esp_err_t gpio_spy_get_pin_level(gpio_num_t gpio_num, uint32_t *level);
 
-bool thermocouple_set_referesh_rate(thermocouple_refresh_rate_t const refresh_rate);
+esp_err_t gpio_set_level(gpio_num_t a, uint32_t b);
 
-bool thermocouple_get_temperature(thermocouple_id_t const id, int16_t * const temperature);
+void gpio_spy_init(void);
+
+void gpio_spy_deinit(void);
 
 #ifdef __cplusplus
 }
 #endif // #ifdef __cplusplus
 
-#endif //THERMOCOUPLE_H
+#endif //GPIO_SPY_H
