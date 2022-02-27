@@ -316,7 +316,7 @@ TEST(heater_initialized, start_msg_valid_succeeds)
         ENUMS_EQUAL_INT(HEATER_ERROR_SUCCESS, result);
         CHECK(NULL != p_msg);
         LONGS_EQUAL(m_valid_target_degrees, p_msg->target);
-        LONGS_EQUAL(true, p_msg->heater_running);
+        LONGS_EQUAL(true, p_msg->heater_control_active);
 }
 
 /*!
@@ -396,7 +396,7 @@ TEST(heater_initialized, stop_succeeds)
         ENUMS_EQUAL_INT(HEATER_ERROR_SUCCESS, success);
         LONGS_EQUAL(0, pin_level);
         CHECK(NULL != p_msg);
-        LONGS_EQUAL(false, p_msg->heater_running);
+        LONGS_EQUAL(false, p_msg->heater_control_active);
         LONGS_EQUAL(0, p_msg->target);
 }
 
@@ -423,7 +423,7 @@ TEST(heater_initialized, stop_after_start_succeeds)
         ENUMS_EQUAL_INT(HEATER_ERROR_SUCCESS, success);
         LONGS_EQUAL(0, pin_level);
         CHECK(NULL != p_msg);
-        LONGS_EQUAL(false, p_msg->heater_running);
+        LONGS_EQUAL(false, p_msg->heater_control_active);
         LONGS_EQUAL(0, p_msg->target);
 }
 
