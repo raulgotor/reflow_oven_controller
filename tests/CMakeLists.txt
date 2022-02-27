@@ -1,7 +1,3 @@
-#-DCMAKE_C_COMPILER="/usr/bin/gcc" -DCMAKE_CXX_COMPILER="/usr/bin/g++"
-#set(CMAKE_C_COMPILER "/usr/bin/gcc")
-#set(CMAKE_CXX_COMPILER "/usr/bin/g++")
-
 set(CMAKE_CXX_FLAGS "")
 message("Current dir:       " ${CMAKE_CXX_FLAGS})
 
@@ -43,25 +39,17 @@ file(GLOB SOURCES
 include_directories(
         ${CPPUTEST_INCLUDE_DIRS}
         ${TESTS_DIR}/mocks/hal
-        #"~/esp/esp-idf/components/freertos/include/"
-        #"~/esp/esp-idf/components/freertos/port/linux/include"
-        #"~/esp/esp-idf/components/esp_common/include/"
-        ##"/Library/Developer/CommandLineTools/SDKs/MacOSX11.1.sdk/usr/include/"
-        #"~/esp/esp-idf/components/newlib/platform_include"
-        #"~/esp/esp-idf/components/newlib/platform_include/sys"
 
-        "/Users/raul.gotor/esp/esp-idf/components/driver/include"
-        "/Users/raul.gotor/esp/esp-idf/components/esp_common/include"
-        "/Users/raul.gotor/esp/esp-idf/components/hal/include/hal"
-        "/Users/raul.gotor/esp/esp-idf/components/hal/include"
-        "/Users/raul.gotor/esp/esp-idf/components/esp_rom/include"
-        "/Users/raul.gotor/esp/esp-idf/components/esp_hw_support/include"
-        "/Users/raul.gotor/esp/esp-idf/components/soc/esp32/include"
-        "/Users/raul.gotor/esp/esp-idf/components/soc/include"
-        "/Users/raul.gotor/private/reflow_oven_controller/cmake-build-production-xtensa/config"
-
-        "/Users/raul.gotor/private/reflow_oven_controller/cmake-build-production-xtensa/config"
+        "${IDF_COMPONENTS_PATH}/driver/include"
+        "${IDF_COMPONENTS_PATH}/esp_common/include"
+        "${IDF_COMPONENTS_PATH}/hal/include/hal"
+        "${IDF_COMPONENTS_PATH}/hal/include"
+        "${IDF_COMPONENTS_PATH}/esp_rom/include"
+        "${IDF_COMPONENTS_PATH}/esp_hw_support/include"
+        "${IDF_COMPONENTS_PATH}/soc/esp32/include"
+        "${IDF_COMPONENTS_PATH}/soc/include"
         "${PRODUCTION_DIR}"
+        "${PROJECT_SOURCE_DIR}/cmake-build-production-xtensa/config"
 )
 
 link_directories(${CPPUTEST_LIBRARIES})

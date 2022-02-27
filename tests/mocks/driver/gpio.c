@@ -76,6 +76,11 @@ esp_err_t gpio_set_level(gpio_num_t gpio_num, uint32_t level)
         return ESP_OK;
 }
 
+esp_err_t gpio_config(const gpio_config_t *pGPIOConfig)
+{
+        return ESP_OK;
+}
+
 esp_err_t gpio_spy_get_pin_level(gpio_num_t gpio_num, uint32_t *level)
 {
 

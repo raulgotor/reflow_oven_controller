@@ -142,6 +142,8 @@ static heater_temp_getter_t m_pf_temperature_getter = NULL;
 heater_error_t heater_init(heater_temp_getter_t const p_f_temp_getter)
 {
         heater_error_t success = HEATER_ERROR_SUCCESS;
+        gpio_config_t io_config = {};
+        esp_err_t esp_success;
         int result;
 
         //TODO configure hardware!
@@ -154,6 +156,18 @@ heater_error_t heater_init(heater_temp_getter_t const p_f_temp_getter)
                 m_heater_queue_h = xQueueCreate(3, sizeof(heater_msg_t *));
 
                 if (NULL == m_heater_queue_h) {
+                        success = HEATER_ERROR_GENERAL_ERROR;
+                }
+        }
+
+        if (HEATER_ERROR_SUCCESS == success) {
+                io_config.mode = GPIO_MODE_OUTPUT;
+                io_config.pull_down_en = GPIO_PULLDOWN_ENABLE;
+                io_config.pin_bit_mask = HEATER_ACTIVE_HIGH_GPIO_PIN;
+
+                esp_success = gpio_config(&io_config);
+
+                if (ESP_OK != esp_success) {
                         success = HEATER_ERROR_GENERAL_ERROR;
                 }
         }
