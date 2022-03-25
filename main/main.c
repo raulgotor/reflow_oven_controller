@@ -37,6 +37,7 @@
 #include "tp_spi.h"
 #include "xpt2046.h"
 #include "freertos/timers.h"
+#include "heater.h"
 #include "reflow_profile.h"
 #include "state_machine/states/state_machine_states.h"
 #include "state_machine/state_machine.h"
@@ -102,22 +103,28 @@ static lv_disp_buf_t display_buffer;
 void app_main()
 {
 
+        bool success = true;
+
         // @note: failing to initialize hardware will assert
         hardware_init();
 
-        (void)display_init();
+        success = display_init();
 
-        reflow_timer_init();
+        success = success && reflow_timer_init();
 
-        reflow_profile_init();
+        success = success && reflow_profile_init();
 
         gui_init();
 
-        state_machine_init();
+        success = success && state_machine_init();
 
-        //mosfet_init();
+        success = success && (HEATER_ERROR_SUCCESS == heater_init());
 
-        thermocouple_init();
+        success = success && thermocouple_init();
+
+        if (!success) {
+                assert(0);
+        }
 
         while (1) {
                 vTaskDelay(1);

@@ -197,6 +197,8 @@ bool state_machine_send_event(state_machine_event_type_t const type,
                 success = (pdPASS == result);
         }
 
+        // TODO: free memory if failed????
+
         return success;
 }
 
