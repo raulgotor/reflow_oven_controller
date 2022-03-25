@@ -53,6 +53,13 @@
  *******************************************************************************
  */
 
+/*!
+ * @brief Maximum allowed time (ms) to reach the reflow temperature before
+ *        jumping to state error
+ */
+uint32_t const m_reflow_timeout = portMAX_DELAY;
+
+
 /*
  *******************************************************************************
  * Private Function Prototypes                                                 *
@@ -66,6 +73,8 @@ static bool clean_up_device(void);
  * Public Data Declarations                                                    *
  *******************************************************************************
  */
+
+extern xTaskHandle m_thermocouple_task_h;
 
 /*
  *******************************************************************************
@@ -161,6 +170,10 @@ void state_machine_state_heating(void)
                 case STATE_MACHINE_EVENT_TYPE_MESSAGE:
                         if (STATE_MACHINE_MSG_HEATER_PREHEAT_TARGET_REACHED == event.data.message) {
                                 state_machine_set_state(state_machine_state_soak);
+
+                                // Notify thermocouple_task that the event was processed
+                                xTaskNotify(m_thermocouple_task_h, 1, eSetValueWithOverwrite);
+
                         } else if (STATE_MACHINE_MSG_HEATER_ERROR ==
                                    event.data.message) {
                                 state_machine_set_state(state_machine_state_error);
@@ -238,8 +251,6 @@ void state_machine_state_reflow(void)
         }
 
         if (success) {
-                //TODO: move to right place
-                uint32_t const m_reflow_timeout = portMAX_DELAY;
                 success = state_machine_wait_for_event(m_reflow_timeout, &event);
         }
 
@@ -254,14 +265,20 @@ void state_machine_state_reflow(void)
                         state_machine_set_state(state_machine_state_cooling);
                 }
                 break;
+
         case STATE_MACHINE_EVENT_TYPE_MESSAGE:
                 if (STATE_MACHINE_MSG_HEATER_REFLOW_TARGET_REACHED == event.data.message) {
                         state_machine_set_state(state_machine_state_dwell);
+
+                        // Notify thermocouple_task that the event was processed
+                        xTaskNotify(m_thermocouple_task_h, 1, eSetValueWithOverwrite);
+
                 } else if (STATE_MACHINE_MSG_HEATER_ERROR ==
                            event.data.message) {
                         state_machine_set_state(state_machine_state_error);
                 }
                 break;
+
         default:
                 assert(0);
         }
@@ -350,6 +367,10 @@ void state_machine_state_cooling(void)
         case STATE_MACHINE_EVENT_TYPE_MESSAGE:
                 if (STATE_MACHINE_MSG_HEATER_COOLING_TARGET_REACHED == event.data.message) {
                         state_machine_set_state(state_machine_state_idle);
+
+                        // Notify thermocouple_task that the event was processed
+                        xTaskNotify(m_thermocouple_task_h, 1, eSetValueWithOverwrite);
+
                 } else if (STATE_MACHINE_MSG_HEATER_ERROR ==
                            event.data.message) {
                         state_machine_set_state(state_machine_state_error);

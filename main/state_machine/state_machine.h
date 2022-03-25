@@ -165,7 +165,7 @@ state_machine_msg_t state_machine_get_timeout_msg(
                 state_machine_state_text_t const state);
 
 state_machine_state_text_t state_machine_pointer_to_text(
-        state_machine_state_t const state);
+                state_machine_state_t const state);
 
 char * state_machine_get_state_string(state_machine_state_text_t const state);
 

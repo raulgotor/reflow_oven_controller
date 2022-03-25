@@ -66,6 +66,8 @@ static size_t const m_state_map_size = sizeof(m_state_map) /
  *******************************************************************************
  */
 
+extern void state_machine_task(void * pvParameter);
+
 /*
  *******************************************************************************
  * Static Data Declarations                                                    *
@@ -198,7 +200,8 @@ bool state_machine_send_event(state_machine_event_type_t const type,
         return success;
 }
 
-state_machine_msg_t state_machine_get_timeout_msg(state_machine_state_text_t const state)
+state_machine_msg_t state_machine_get_timeout_msg(
+                state_machine_state_text_t const state)
 {
         state_machine_msg_t message = STATE_MACHINE_MSG_COUNT;
         bool found = false;
@@ -212,6 +215,24 @@ state_machine_msg_t state_machine_get_timeout_msg(state_machine_state_text_t con
         }
 
         return message;
+}
+
+state_machine_state_text_t state_machine_pointer_to_text(
+                state_machine_state_t const state)
+{
+        bool found = false;
+        state_machine_state_text_t text = STATE_MACHINE_STATE_COUNT;
+        size_t i;
+
+        for (i = 0; ((STATE_MACHINE_STATE_COUNT > i) && (!found)); i++) {
+
+                if (state == m_state_map[i].function) {
+                        text = m_state_map[i].text;
+                        found = true;
+                }
+        }
+
+        return text;
 }
 
 char * state_machine_get_state_string(state_machine_state_text_t const state)
@@ -236,22 +257,6 @@ char * state_machine_get_state_string(state_machine_state_text_t const state)
  *******************************************************************************
  */
 
-state_machine_state_text_t state_machine_pointer_to_text(state_machine_state_t const state)
-{
-        bool found = false;
-        state_machine_state_text_t text = STATE_MACHINE_STATE_COUNT;
-        size_t i;
-
-        for (i = 0; ((STATE_MACHINE_STATE_COUNT > i) && (!found)); i++) {
-
-                if (state == m_state_map[i].function) {
-                        text = m_state_map[i].text;
-                        found = true;
-                }
-        }
-
-        return text;
-}
 
 /*
  *******************************************************************************
