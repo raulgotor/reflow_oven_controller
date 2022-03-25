@@ -1,20 +1,20 @@
 /*!
  *******************************************************************************
- * @file thermocouple.h
+ * @file panic.h
  *
  * @brief 
  *
  * @author Raúl Gotor (raulgotor@gmail.com)
- * @date 18.09.21
+ * @date 25.03.22
  *
  * @par
- * COPYRIGHT NOTICE: (c) 2021 Raúl Gotor
+ * COPYRIGHT NOTICE: (c) 2022 Raúl Gotor
  * All rights reserved.
  *******************************************************************************
  */
 
-#ifndef THERMOCOUPLE_H
-#define THERMOCOUPLE_H
+#ifndef PANIC_H
+#define PANIC_H
 
 /*
  *******************************************************************************
@@ -29,19 +29,6 @@
  *******************************************************************************
  */
 
-typedef enum {
-        THERMOCOUPLE_REFRESH_RATE_1_HZ = 0,
-        THERMOCOUPLE_REFRESH_RATE_100_HZ,
-        THERMOCOUPLE_REFRESH_RATE_1_KHZ,
-        THERMOCOUPLE_REFRESH_RATE_COUNT
-} thermocouple_refresh_rate_t;
-
-typedef enum {
-        THERMOCOUPLE_ID_0 = 0,
-        THERMOCOUPLE_ID_1,
-        THERMOCOUPLE_ID_COUNT
-} thermocouple_id_t;
-
 /*
  *******************************************************************************
  * Public Constants                                                            *
@@ -55,8 +42,6 @@ typedef enum {
  *******************************************************************************
  */
 
-bool thermocouple_init(void);
+void panic(char const * error_msg, char const * filename, uint32_t const line);
 
-bool thermocouple_get_temperature(thermocouple_id_t const id, int16_t * const temperature);
-
-#endif //THERMOCOUPLE_H
+#endif //PANIC_H

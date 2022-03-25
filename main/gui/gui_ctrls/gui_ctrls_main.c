@@ -109,7 +109,8 @@ void gui_ctrls_main_refresh(void)
                 meter_value_max = (int16_t)reflow_profile.reflow_temperature;
                 profile_name = reflow_profile.name;
 
-                snprintf(temperature_str, 9, "%dº", temperature);
+                // TODO: round
+                snprintf(temperature_str, 9, "%dº", temperature / 100);
                 lv_label_set_text(p_temp_label, temperature_str);
                 lv_label_set_text(p_profile_label, profile_name);
                 lv_lmeter_set_value(p_lmeter, temperature);

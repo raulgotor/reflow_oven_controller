@@ -48,6 +48,4 @@
 
 bool state_machine_set_state(state_machine_state_t const state);
 
-void state_machine_task(void * pvParameter);
-
 #endif //STATE_MACHINE_TASK_H
