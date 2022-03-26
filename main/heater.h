@@ -52,9 +52,9 @@ typedef enum {
 
 heater_error_t heater_init(void);
 
-heater_error_t heater_set_target(int16_t const degrees);
+heater_error_t heater_set_target(uint16_t const degrees);
 
-heater_error_t heater_get_target(int16_t * const p_degrees);
+heater_error_t heater_get_target(uint16_t * const p_degrees);
 
 heater_error_t heater_start(void);
 

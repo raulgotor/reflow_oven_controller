@@ -20,6 +20,7 @@
  */
 
 #include "esp_log.h"
+#include "heater.h"
 #include "esp_panic.h"
 #include "panic.h"
 
@@ -66,9 +67,14 @@
  */
 
 void panic(char const * error_msg, char const * filename, uint32_t const line) {
+        // TODO: shut down mosfet -> is static method....
+        // heater_power_off();
+
         ESP_LOGE("Panic", "At %s:%d: %s\n", filename, line, error_msg);
 
-        //TODO: shut down mosfet and reset system
+        while (1) {
+                // Loop until WDT resets the system
+        }
 }
 
 /*

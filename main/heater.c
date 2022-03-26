@@ -29,8 +29,10 @@
 
 #include "driver/gpio.h"
 
+#include "wdt.h"
 #include "thermocouple.h"
 #include "heater.h"
+#include "panic.h"
 
 /*
  *******************************************************************************
@@ -48,7 +50,7 @@
  */
 
 typedef struct {
-        int16_t target;
+        uint16_t target;
         bool heater_running;
 } heater_msg_t;
 
@@ -86,9 +88,9 @@ static heater_error_t heater_send_msg(heater_msg_t const message);
 
 static bool m_is_initialized = false;
 
-static int16_t m_heater_target = 0;
+static uint16_t m_heater_target = 0;
 
-static int16_t m_target_max_degrees = 300;
+static uint16_t m_target_max_degrees = 300;
 
 static TaskHandle_t heater_task_h = NULL;
 
@@ -102,11 +104,12 @@ static xQueueHandle heater_queue_h = NULL;
 
 heater_error_t heater_init(void)
 {
-        heater_error_t success = HEATER_ERROR_SUCCESS;
-        int result;
+        heater_error_t result = HEATER_ERROR_SUCCESS;
+        BaseType_t task_result;
+        bool success;
 
         if (m_is_initialized) {
-                success = HEATER_ERROR_GENERAL_ERROR;
+                result = HEATER_ERROR_GENERAL_ERROR;
         } else {
                 m_heater_target = 0;
                 m_is_initialized = true;
@@ -114,29 +117,37 @@ heater_error_t heater_init(void)
                 heater_queue_h = xQueueCreate(3, sizeof(heater_msg_t));
 
                 if (NULL == heater_queue_h) {
-                        success = HEATER_ERROR_GENERAL_ERROR;
+                        result = HEATER_ERROR_GENERAL_ERROR;
                 }
         }
 
-        if (HEATER_ERROR_SUCCESS == success) {
+        if (HEATER_ERROR_SUCCESS == result) {
 
-                result = xTaskCreate(
+                task_result = xTaskCreate(
                                 heater_task,
                                 "heater_task",
-                                configMINIMAL_STACK_SIZE,
+                                configMINIMAL_STACK_SIZE * 2,
                                 NULL,
                                 1,
-                                heater_task_h);
+                                &heater_task_h);
 
-                if (pdPASS != result) {
-                        success = HEATER_ERROR_GENERAL_ERROR;
+                if (pdPASS != task_result) {
+                        result = HEATER_ERROR_GENERAL_ERROR;
                 }
         }
 
-        return success;
+        if (HEATER_ERROR_SUCCESS == result) {
+                success = wdt_add_task(heater_task_h);
+
+                if (!success) {
+                        result = HEATER_ERROR_GENERAL_ERROR;
+                }
+        }
+
+        return result;
 }
 
-heater_error_t heater_set_target(int16_t const degrees)
+heater_error_t heater_set_target(uint16_t const degrees)
 {
         heater_error_t success = HEATER_ERROR_SUCCESS;
 
@@ -153,7 +164,7 @@ heater_error_t heater_set_target(int16_t const degrees)
         return success;
 }
 
-heater_error_t heater_get_target(int16_t * const p_degrees)
+heater_error_t heater_get_target(uint16_t * const p_degrees)
 {
         heater_error_t success = HEATER_ERROR_SUCCESS;
         
@@ -281,14 +292,13 @@ static heater_error_t heater_send_msg(heater_msg_t const message)
 void heater_task(void * pvParameters)
 {
         heater_msg_t * p_in_message = NULL;
-        int16_t target_temperature = 0;
+        uint16_t target_temperature = 0;
         bool heater_running = false;
         int16_t temperature;
         BaseType_t result;
-        bool success;
+        bool success = true;
 
         for (;;) {
-
                 result = xQueueReceive(heater_queue_h, &p_in_message, pdMS_TO_TICKS(100));
 
                 if ((pdTRUE == result) && (NULL != p_in_message)) {
@@ -309,16 +319,20 @@ void heater_task(void * pvParameters)
                                         THERMOCOUPLE_ID_0,
                                         &temperature);
 
-                        if (!success) {
-                                heater_power_off();
-                                assert(0);
-                        }
-
-                        if (target_temperature < m_heater_target) {
-                                heater_power_off();
-                        } else {
-                                heater_power_on();
+                        if (success) {
+                                if (target_temperature < m_heater_target) {
+                                        heater_power_off();
+                                } else {
+                                        heater_power_on();
+                                }
                         }
                 }
+
+                if ((!success) || (!wdt_kick())) {
+                        // Code style exception for readability
+                        break;
+                }
         }
+
+        panic("General failure at heater_task ", __FILENAME__, __LINE__);
 }

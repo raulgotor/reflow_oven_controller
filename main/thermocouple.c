@@ -35,6 +35,7 @@
 #include "driver/spi_master.h"
 #include "maxim_max6675.h"
 #include "panic.h"
+#include "wdt.h"
 #include "thermocouple.h"
 #include "reflow_profile.h"
 
@@ -118,8 +119,13 @@ bool thermocouple_init(void)
         }
 
         if (success) {
+                success = wdt_add_task(m_thermocouple_task_h);
+        }
+
+        if (success) {
                 success = thermocouple_update_temperature();
         }
+
 
         if (success) {
                 m_is_initialized = true;
@@ -205,10 +211,11 @@ static bool thermocouple_update_temperature(void)
         }
 #else
 
-        int16_t temperature;
+        uint16_t temperature;
         bool sensor_is_connected;
         bool success;
         max6675_error_t result;
+        uint16_t const centideg_to_deg_factor = 100;
 
         result = max6675_is_sensor_connected(&sensor_is_connected);
 
@@ -216,11 +223,14 @@ static bool thermocouple_update_temperature(void)
 
         if (success) {
                 result = max6675_read_temperature(&temperature);
-                m_temperature[0] = temperature;
+
+                // Convert to degrees celsius with rounding
+                temperature += (centideg_to_deg_factor / 2);
+                temperature /= centideg_to_deg_factor;
+                m_temperature[0] = (int16_t)temperature;
 
                 success = (MAX6675_ERROR_SUCCESS == result);
         }
-
 
         return success;
 #endif
@@ -247,7 +257,6 @@ void thermocouple_task(void * pvParameters)
                 // According to datasheet, conversion time is 170 ms nominal.
                 // Setting a readout time smaller than conversion time will reset
                 // the conversion and will return the previous value again
-                // vTaskDelay(300);
                 vTaskDelay(1000);
 
                 success = thermocouple_update_temperature();
@@ -258,7 +267,7 @@ void thermocouple_task(void * pvParameters)
                 }
 
                 if (success) {
-                        success = state_machine_get_state(&state);
+                        (void)state_machine_get_state(&state);
                 } else {
                         // Code style exception for readability
                         break;
@@ -293,14 +302,13 @@ void thermocouple_task(void * pvParameters)
 
                 if (STATE_MACHINE_MSG_COUNT != data.message) {
 
-
-                        ESP_LOGI("TAG", "Sending event to state machine and waiting for notification ");
                         success = state_machine_send_event(
                                         STATE_MACHINE_EVENT_TYPE_MESSAGE,
                                         data,
                                         portMAX_DELAY);
 
                         if (!success) {
+                                // Code style exception for readability
                                 break;
                         }
 
@@ -310,11 +318,12 @@ void thermocouple_task(void * pvParameters)
                          * times
                          */
                         xTaskNotifyWait(0, 0, NULL, portMAX_DELAY);
-                        ESP_LOGI("TAG", "Got  notification ");
+                }
 
+                if (!wdt_kick()) {
+                        break;
                 }
         }
 
         panic("General failure at thermocouple_task ", __FILENAME__, __LINE__);
-
 }

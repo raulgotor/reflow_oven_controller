@@ -4,7 +4,7 @@
  *
  * @brief 
  *
- * @author Raúl Gotor (raulgotor@midge.com)
+ * @author Raúl Gotor (raulgotor@gmail.com)
  * @date 27.02.22
  *
  * @par
@@ -140,9 +140,10 @@ max6675_error_t max6675_deinit(void)
 /*!
  * @brief Get whether thermocouple is connected
  *
- * Query whether the thermocouple is connected to the sensor or is open-circuit
+ * Query whether the thermocouple is connected to the MAX6675 sensor or it is in
+ * open-circuit
  *
- * @param[out]          p_connected         Pointer where to store the thermo
+ * @param[out]          p_connected         Pointer where to store the thermo-
  *                                          couple status at.
  *                                          true: thermocouple is connected
  *                                          false: thermocouple is open-circuit
@@ -182,7 +183,12 @@ max6675_error_t max6675_is_sensor_connected(bool * const p_connected)
 /*!
  * @brief Read sensor temperature
  *
- * Query the sensor to retrieve the last temperature measurement
+ * Query the MAX6675 sensor to retrieve the last temperature measurement
+ *
+ * The ADC adds the cold-junction diode measurement with the amplified
+ * thermocouple voltage and reads out the 12-bit result onto the SO pin.
+ * A sequence of all zeros means the thermocouple reading is 0°C.
+ * A sequence of all ones means the thermocouple reading is +1023.75°C
  *
  * @param[out]          p_temperature       Pointer where to return the value at
  *
@@ -194,7 +200,7 @@ max6675_error_t max6675_is_sensor_connected(bool * const p_connected)
  * @retval              MAX6675_ERROR_BAD_PARAMETER
  *                                          Parameter is null
  */
-max6675_error_t max6675_read_temperature(int16_t * const p_temperature)
+max6675_error_t max6675_read_temperature(uint16_t * const p_temperature)
 {
         max6675_error_t result = MAX6675_ERROR_SUCCESS;
         uint16_t sensor_output;
@@ -210,12 +216,13 @@ max6675_error_t max6675_read_temperature(int16_t * const p_temperature)
         }
 
         if (MAX6675_ERROR_SUCCESS == result) {
-                *p_temperature = (int16_t)sensor_output;
-                *p_temperature >>= MAX6675_INTERFACE_DATA_START_BIT;
-                *p_temperature *= 25;
+                sensor_output >>= MAX6675_INTERFACE_DATA_START_BIT;
+                sensor_output *=25;
+
+                *p_temperature = sensor_output;
         }
 
-        return MAX6675_ERROR_SUCCESS;
+        return result;
 }
 
 /*
@@ -227,7 +234,7 @@ max6675_error_t max6675_read_temperature(int16_t * const p_temperature)
 /*!
  * @brief Read n-bytes from the transfer function
  *
- * @param[in]           p_rx_buffer         Pointer to a buffer where to read
+ * @param[out]          p_rx_buffer         Pointer to a buffer where to read
  *                                          the data to
  * @param[in]           size                Number of bytes to read
  *
@@ -265,9 +272,23 @@ static max6675_error_t max6675_read_n_bytes(uint8_t * const p_rx_buffer,
 }
 
 /*!
- * @brief Get MAX6675 raw readout
+ * @brief Get sensor raw readout
  *
- * Get sensor raw readout with the temperature data and sensor status information
+ * Get MAX6675 sensor raw readout containing the temperature data and sensor
+ * status information
+ *
+ * A complete serial interface read requires 16 clock cycles. Read the 16 output
+ * bits on the falling edge of the clock. The first bit, D15, is a dummy sign
+ * bit and is always zero. Bits D14–D3 contain the converted temperature in the
+ * order of MSB to LSB. Bit D2 is normally low and goes high when the
+ * thermocouple input is open. D1 is low to provide a device ID for the MAX6675
+ * and bit D0 is three-state.
+ *
+ * | 15   | 14  13  12  11  10  9  8  7  6  5  4  3 |    2    |    1    |  0   |
+ * |------|-----------------------------------------|---------|---------|------|
+ * | Dummy|                 12-bit                  | Thermoc.|  Device |State |
+ * | sign | MSB      Temperature reading        LSB |   input |    ID   |      |
+ * | bit  |                                         |         |         |      |
  *
  * @param[out]          p_readout           Pointer where to return the value at
  *
@@ -296,8 +317,8 @@ static max6675_error_t max6675_get_raw_readout(uint16_t * const p_readout)
         }
 
         if (MAX6675_ERROR_SUCCESS == result) {
-                *p_readout = (int16_t)((rx_buffer[0] & 0x00FF) << 8);
-                *p_readout |= (int16_t)(rx_buffer[1] & 0x00FF);
+                *p_readout = (uint16_t)((rx_buffer[0] & 0x00FF) << 8);
+                *p_readout |= (uint16_t)(rx_buffer[1] & 0x00FF);
         }
 
         return result;

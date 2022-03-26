@@ -190,14 +190,17 @@ bool state_machine_send_event(state_machine_event_type_t const type,
                         success = false;
                         break;
                 }
+
+                if (success) {
+                        result = xQueueSend(m_state_machine_event_q, &p_event, timeout);
+                        success = (pdPASS == result);
+                }
         }
 
-        if (success) {
-                result = xQueueSend(m_state_machine_event_q, &p_event, timeout);
-                success = (pdPASS == result);
+        if (!success) {
+                vPortFree(p_event);
+                p_event = NULL;
         }
-
-        // TODO: free memory if failed????
 
         return success;
 }
