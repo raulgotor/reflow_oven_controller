@@ -41,7 +41,7 @@
  */
 
 //TODO: define which pin
-#define HEATER_ACTIVE_HIGH_GPIO_PIN              (10)
+#define HEATER_ACTIVE_HIGH_GPIO_PIN              (32)
 
 /*
  *******************************************************************************
@@ -320,7 +320,7 @@ void heater_task(void * pvParameters)
                                         &temperature);
 
                         if (success) {
-                                if (target_temperature < m_heater_target) {
+                                if (target_temperature <= temperature) {
                                         heater_power_off();
                                 } else {
                                         heater_power_on();

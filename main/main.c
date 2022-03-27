@@ -161,6 +161,9 @@ static void hardware_init(void)
         gpio_set_direction(17, GPIO_MODE_OUTPUT);
         gpio_set_level(17, 1);
 
+        gpio_set_direction(32, GPIO_MODE_OUTPUT);
+        gpio_set_level(32, 0);
+
         disp_spi_init();
         ili9341_init();
         spi_init();
