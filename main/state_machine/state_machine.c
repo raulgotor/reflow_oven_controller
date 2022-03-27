@@ -106,7 +106,8 @@ bool state_machine_init(void) {
 
         if (success) {
                 m_state_machine_event_q = xQueueCreate(
-                                          10U, sizeof(state_machine_event_t *));
+                                10U,
+                                sizeof(state_machine_event_t *));
 
                 if (NULL == m_state_machine_event_q) {
                         success = false;
@@ -119,6 +120,8 @@ bool state_machine_init(void) {
 
         if (success) {
                 m_is_initialized = true;
+
+                // Unblock state machine task to start processing states
                 xTaskNotify(m_state_machine_task_h, 0, eNoAction);
         }
 

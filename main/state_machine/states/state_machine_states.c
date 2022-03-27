@@ -68,8 +68,6 @@ uint32_t const m_reflow_dwell_cooling_timeout = portMAX_DELAY;
  *******************************************************************************
  */
 
-static bool clean_up_device(void);
-
 /*
  *******************************************************************************
  * Public Data Declarations                                                    *
@@ -404,8 +402,7 @@ void state_machine_state_error(void)
 
         gui_ctrls_main_update_buttons(STATE_MACHINE_STATE_ERROR);
 
-        (void)clean_up_device();
-        // TODO: display_ui_advice();
+        heater_emergency_stop();
 
         success = state_machine_wait_for_event(portMAX_DELAY, &event);
 
@@ -430,12 +427,6 @@ void state_machine_state_error(void)
  * Private Function Bodies                                                     *
  *******************************************************************************
  */
-
-static bool clean_up_device(void)
-{
-
-        return (HEATER_ERROR_SUCCESS == heater_stop());
-}
 
 /*
  *******************************************************************************

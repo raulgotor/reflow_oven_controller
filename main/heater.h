@@ -62,5 +62,6 @@ heater_error_t heater_stop(void);
 
 heater_error_t heater_deinit(void);
 
+void heater_emergency_stop(void);
 
 #endif //HEATER_H

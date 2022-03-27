@@ -67,11 +67,10 @@
  */
 
 void panic(char const * error_msg, char const * filename, uint32_t const line) {
-        // TODO: shut down mosfet -> is static method....
-        // heater_power_off();
+
+        heater_emergency_stop();
 
         ESP_LOGE("Panic", "At %s:%d: %s\n", filename, line, error_msg);
-
         while (1) {
                 // Loop until WDT resets the system
         }
