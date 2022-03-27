@@ -1,20 +1,20 @@
 /*!
  *******************************************************************************
- * @file state_machine.h
+ * @file panic.h
  *
  * @brief 
  *
  * @author Raúl Gotor (raulgotor@gmail.com)
- * @date 18.09.21
+ * @date 25.03.22
  *
  * @par
- * COPYRIGHT NOTICE: (c) 2021 Raúl Gotor
+ * COPYRIGHT NOTICE: (c) 2022 Raúl Gotor
  * All rights reserved.
  *******************************************************************************
  */
 
-#ifndef STATE_MACHINE_TASK_H
-#define STATE_MACHINE_TASK_H
+#ifndef PANIC_H
+#define PANIC_H
 
 /*
  *******************************************************************************
@@ -42,6 +42,6 @@
  *******************************************************************************
  */
 
-bool state_machine_set_state(state_machine_state_t const state);
+void panic(char const * error_msg, char const * filename, uint32_t const line);
 
-#endif //STATE_MACHINE_TASK_H
+#endif //PANIC_H

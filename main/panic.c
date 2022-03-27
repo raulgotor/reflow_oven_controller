@@ -1,14 +1,14 @@
 /*!
  *******************************************************************************
- * @file state_machine.cpp
+ * @file panic.c
  *
  * @brief 
  *
  * @author Raúl Gotor (raulgotor@gmail.com)
- * @date 18.09.21
+ * @date 25.03.22
  *
  * @par
- * COPYRIGHT NOTICE: (c) 2021 Raúl Gotor
+ * COPYRIGHT NOTICE: (c) 2022 Raúl Gotor
  * All rights reserved.
  *******************************************************************************
  */
@@ -19,12 +19,10 @@
  *******************************************************************************
  */
 
-#include <stdbool.h>
-#include <assert.h>
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "states/state_machine_states.h"
-#include "state_machine.h"
+#include "esp_log.h"
+#include "heater.h"
+#include "esp_panic.h"
+#include "panic.h"
 
 /*
  *******************************************************************************
@@ -62,45 +60,20 @@
  *******************************************************************************
  */
 
-static state_machine_state_t m_pf_state = NULL;
-
-static state_machine_state_text_t m_state_machine_state = STATE_MACHINE_STATE_COUNT;
-
 /*
  *******************************************************************************
  * Public Function Bodies                                                      *
  *******************************************************************************
  */
 
-bool state_machine_get_state(state_machine_state_text_t * const p_state)
-{
+void panic(char const * error_msg, char const * filename, uint32_t const line) {
 
-        bool success = (NULL != p_state);
+        heater_emergency_stop();
 
-        if (success) {
-                *p_state = m_state_machine_state;
+        ESP_LOGE("Panic", "At %s:%d: %s\n", filename, line, error_msg);
+        while (1) {
+                // Loop until WDT resets the system
         }
-
-        return success;
-}
-
-bool state_machine_set_state(state_machine_state_t const state)
-{
-        bool success = (NULL != state);
-        // Avoid state_text might be used uninitialized warning
-        state_machine_state_text_t state_text = STATE_MACHINE_STATE_COUNT;
-
-        if (success) {
-                state_text = state_machine_pointer_to_text(state);
-                success = (STATE_MACHINE_STATE_COUNT != state_text);
-        }
-
-        if (success) {
-                m_state_machine_state = state_text;
-                m_pf_state = state;
-        }
-
-        return success;
 }
 
 /*
@@ -114,14 +87,3 @@ bool state_machine_set_state(state_machine_state_t const state)
  * Interrupt Service Routines / Tasks / Thread Main Functions                  *
  *******************************************************************************
  */
-
-void state_machine_task(void * pvParameter)
-{
-        // Don't start processing states until everything is set and running
-        xTaskNotifyWait(0, 0, NULL, portMAX_DELAY);
-
-        for (;;) {
-                m_pf_state();
-                vTaskDelay(1);
-        }
-}

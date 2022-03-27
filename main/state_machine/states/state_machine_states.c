@@ -25,12 +25,13 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/timers.h"
 #include "lvgl.h"
-
 #include "reflow_profile.h"
+
 #include "state_machine/states/state_machine_states.h"
 #include "state_machine/state_machine.h"
 #include "state_machine/state_machine_task.h"
 #include "gui/gui_ctrls/gui_ctrls_main.h"
+#include "heater.h"
 #include "reflow_timer.h"
 
 /*
@@ -39,7 +40,7 @@
  *******************************************************************************
  */
 
-#define TAG                                     __FILENAME__
+#define TAG                                 __FILENAME__
 
 /*
  *******************************************************************************
@@ -53,19 +54,27 @@
  *******************************************************************************
  */
 
+//TODO: define timeout
+/*!
+ * @brief Maximum allowed time (ms) to reach the reflow temperature before
+ *        jumping to state error
+ */
+uint32_t const m_reflow_dwell_cooling_timeout = portMAX_DELAY;
+
+
 /*
  *******************************************************************************
  * Private Function Prototypes                                                 *
  *******************************************************************************
  */
 
-static bool clean_up_device(void);
-
 /*
  *******************************************************************************
  * Public Data Declarations                                                    *
  *******************************************************************************
  */
+
+extern xTaskHandle m_thermocouple_task_h;
 
 /*
  *******************************************************************************
@@ -132,8 +141,9 @@ void state_machine_state_heating(void)
 
         state_machine_event_t event;
         state_machine_state_text_t state;
-        bool success = state_machine_get_state(&state);
+        heater_error_t heater_result;
         reflow_profile_t profile;
+        bool success = state_machine_get_state(&state);
 
         if (success) {
                 gui_ctrls_main_update_buttons(state);
@@ -141,7 +151,15 @@ void state_machine_state_heating(void)
         }
 
         if (success) {
-                // TODO: success = heater_set_target(profile.reflow_temperature);
+                heater_result = heater_set_target(profile.preheat_temperature);
+
+                success = (HEATER_ERROR_SUCCESS == heater_result);
+        }
+
+        if (success) {
+                heater_result = heater_start();
+
+                success = (HEATER_ERROR_SUCCESS == heater_result);
         }
 
         if (success) {
@@ -161,6 +179,10 @@ void state_machine_state_heating(void)
                 case STATE_MACHINE_EVENT_TYPE_MESSAGE:
                         if (STATE_MACHINE_MSG_HEATER_PREHEAT_TARGET_REACHED == event.data.message) {
                                 state_machine_set_state(state_machine_state_soak);
+
+                                // Notify thermocouple_task that the event was processed
+                                xTaskNotify(m_thermocouple_task_h, 1, eSetValueWithOverwrite);
+
                         } else if (STATE_MACHINE_MSG_HEATER_ERROR ==
                                    event.data.message) {
                                 state_machine_set_state(state_machine_state_error);
@@ -224,8 +246,9 @@ void state_machine_state_reflow(void)
 
         state_machine_event_t event;
         state_machine_state_text_t state;
-        bool success = state_machine_get_state(&state);
         reflow_profile_t profile;
+        heater_error_t heater_result;
+        bool success = state_machine_get_state(&state);
 
         if (success) {
                 gui_ctrls_main_update_buttons(state);
@@ -233,14 +256,13 @@ void state_machine_state_reflow(void)
         }
 
         if (success) {
-                //TODO: implement
-                // success = heater_set_target(profile.reflow_temperature);
+                heater_result = heater_set_target(profile.reflow_temperature);
+
+                success = (HEATER_ERROR_SUCCESS == heater_result);
         }
 
         if (success) {
-                //TODO: move to right place
-                uint32_t const m_reflow_timeout = portMAX_DELAY;
-                success = state_machine_wait_for_event(m_reflow_timeout, &event);
+                success = state_machine_wait_for_event(m_reflow_dwell_cooling_timeout, &event);
         }
 
         if (!success) {
@@ -254,14 +276,20 @@ void state_machine_state_reflow(void)
                         state_machine_set_state(state_machine_state_cooling);
                 }
                 break;
+
         case STATE_MACHINE_EVENT_TYPE_MESSAGE:
                 if (STATE_MACHINE_MSG_HEATER_REFLOW_TARGET_REACHED == event.data.message) {
                         state_machine_set_state(state_machine_state_dwell);
+
+                        // Notify thermocouple_task that the event was processed
+                        xTaskNotify(m_thermocouple_task_h, 1, eSetValueWithOverwrite);
+
                 } else if (STATE_MACHINE_MSG_HEATER_ERROR ==
                            event.data.message) {
                         state_machine_set_state(state_machine_state_error);
                 }
                 break;
+
         default:
                 assert(0);
         }
@@ -286,9 +314,9 @@ void state_machine_state_dwell(void)
         }
 
         if (success) {
-                //TODO: move to right place
-                uint32_t const m_reflow_timeout = portMAX_DELAY;
-                success = state_machine_wait_for_event(m_reflow_timeout, &event);
+                success = state_machine_wait_for_event(
+                                m_reflow_dwell_cooling_timeout,
+                                &event);
         }
 
         if (!success) {
@@ -320,6 +348,7 @@ void state_machine_state_cooling(void)
 {
         ESP_LOGI(TAG, "State Cooling");
 
+        heater_error_t heater_result;
         state_machine_event_t event;
         state_machine_state_text_t state;
         bool success = state_machine_get_state(&state);
@@ -329,15 +358,15 @@ void state_machine_state_cooling(void)
         }
 
         if (success) {
-                //TODO: implement
-                // success = heater_set_target(m_cooling_temperature);
-                // with a ramp?
+                heater_result = heater_stop();
+
+                success = (HEATER_ERROR_SUCCESS == heater_result);
         }
 
         if (success) {
-                //TODO: move to right place
-                uint32_t const m_cooling_timeout = portMAX_DELAY;
-                success = state_machine_wait_for_event(m_cooling_timeout, &event);
+                success = state_machine_wait_for_event(
+                                m_reflow_dwell_cooling_timeout,
+                                &event);
         }
 
         if (!success) {
@@ -350,6 +379,10 @@ void state_machine_state_cooling(void)
         case STATE_MACHINE_EVENT_TYPE_MESSAGE:
                 if (STATE_MACHINE_MSG_HEATER_COOLING_TARGET_REACHED == event.data.message) {
                         state_machine_set_state(state_machine_state_idle);
+
+                        // Notify thermocouple_task that the event was processed
+                        xTaskNotify(m_thermocouple_task_h, 1, eSetValueWithOverwrite);
+
                 } else if (STATE_MACHINE_MSG_HEATER_ERROR ==
                            event.data.message) {
                         state_machine_set_state(state_machine_state_error);
@@ -365,13 +398,11 @@ void state_machine_state_error(void)
         ESP_LOGI(TAG, "State Error");
 
         state_machine_event_t event;
-        state_machine_state_text_t state;
         bool success = true;
 
         gui_ctrls_main_update_buttons(STATE_MACHINE_STATE_ERROR);
 
-        (void)clean_up_device();
-        // TODO: display_ui_advice();
+        heater_emergency_stop();
 
         success = state_machine_wait_for_event(portMAX_DELAY, &event);
 
@@ -396,14 +427,6 @@ void state_machine_state_error(void)
  * Private Function Bodies                                                     *
  *******************************************************************************
  */
-
-static bool clean_up_device(void)
-{
-        // TODO: bool success = heater_stop_heater();
-        bool success = true;
-
-        return success;
-}
 
 /*
  *******************************************************************************

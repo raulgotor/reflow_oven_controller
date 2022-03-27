@@ -154,9 +154,9 @@ void gui_ctrls_main_button_event_cb(lv_obj_t * p_object, lv_event_t event)
                         return;
                 }
 
-                state_machine_send_event(STATE_MACHINE_EVENT_TYPE_ACTION,
-                                         state_machine_event_data,
-                                         portMAX_DELAY);
+                (void)state_machine_send_event(STATE_MACHINE_EVENT_TYPE_ACTION,
+                                               state_machine_event_data,
+                                               portMAX_DELAY);
         }
 }
 

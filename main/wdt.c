@@ -1,14 +1,14 @@
 /*!
  *******************************************************************************
- * @file state_machine.cpp
+ * @file wdt.c
  *
  * @brief 
  *
  * @author Raúl Gotor (raulgotor@gmail.com)
- * @date 18.09.21
+ * @date 26.03.22
  *
  * @par
- * COPYRIGHT NOTICE: (c) 2021 Raúl Gotor
+ * COPYRIGHT NOTICE: (c) 2022 Raúl Gotor
  * All rights reserved.
  *******************************************************************************
  */
@@ -20,11 +20,8 @@
  */
 
 #include <stdbool.h>
-#include <assert.h>
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "states/state_machine_states.h"
-#include "state_machine.h"
+#include <esp_task_wdt.h>
+#include "wdt.h"
 
 /*
  *******************************************************************************
@@ -62,45 +59,49 @@
  *******************************************************************************
  */
 
-static state_machine_state_t m_pf_state = NULL;
-
-static state_machine_state_text_t m_state_machine_state = STATE_MACHINE_STATE_COUNT;
-
 /*
  *******************************************************************************
  * Public Function Bodies                                                      *
  *******************************************************************************
  */
 
-bool state_machine_get_state(state_machine_state_text_t * const p_state)
+/*!
+ * @brief Initialize the WDT
+ *
+ * The WDT will cause the system to panic if not kicked in time
+ *
+ * @warning esp_task_wdt_init() must only be called after the scheduler started
+ *
+ * @param               timeout_s           Timeout in seconds for the the WDT
+ *                                          to bark
+ *
+ * @return              bool                Operation result
+ */
+bool wdt_init(uint32_t const timeout_s)
 {
+        bool const panic = true;
+        esp_err_t esp_result;
 
-        bool success = (NULL != p_state);
+        esp_result = esp_task_wdt_init(timeout_s, panic);
 
-        if (success) {
-                *p_state = m_state_machine_state;
-        }
-
-        return success;
+        return (ESP_OK == esp_result);
 }
 
-bool state_machine_set_state(state_machine_state_t const state)
+bool wdt_kick(void)
 {
-        bool success = (NULL != state);
-        // Avoid state_text might be used uninitialized warning
-        state_machine_state_text_t state_text = STATE_MACHINE_STATE_COUNT;
+        esp_err_t esp_result;
 
-        if (success) {
-                state_text = state_machine_pointer_to_text(state);
-                success = (STATE_MACHINE_STATE_COUNT != state_text);
-        }
+        esp_result = esp_task_wdt_reset();
+        return (ESP_OK == esp_result);
+}
 
-        if (success) {
-                m_state_machine_state = state_text;
-                m_pf_state = state;
-        }
+bool wdt_add_task(TaskHandle_t const handle)
+{
+        esp_err_t esp_result;
 
-        return success;
+        esp_result = esp_task_wdt_add(handle);
+
+        return (ESP_OK == esp_result);
 }
 
 /*
@@ -114,14 +115,3 @@ bool state_machine_set_state(state_machine_state_t const state)
  * Interrupt Service Routines / Tasks / Thread Main Functions                  *
  *******************************************************************************
  */
-
-void state_machine_task(void * pvParameter)
-{
-        // Don't start processing states until everything is set and running
-        xTaskNotifyWait(0, 0, NULL, portMAX_DELAY);
-
-        for (;;) {
-                m_pf_state();
-                vTaskDelay(1);
-        }
-}

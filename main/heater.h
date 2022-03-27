@@ -80,7 +80,7 @@ typedef struct {
  *
  * @return              Bool                Operation result
  */
-typedef bool (*heater_temp_getter_t)(size_t const id, int16_t * const p_temp);
+typedef bool (*heater_temp_getter_t)(size_t const id, uint16_t * const p_temp);
 
 /*
  *******************************************************************************
@@ -99,10 +99,10 @@ typedef bool (*heater_temp_getter_t)(size_t const id, int16_t * const p_temp);
 heater_error_t heater_init(heater_temp_getter_t const p_f_temp_getter);
 
 //! @brief Set heater target temperature
-heater_error_t heater_set_target(int16_t const degrees);
+heater_error_t heater_set_target(uint16_t const degrees);
 
 //! @brief Get actual heater target temperature
-heater_error_t heater_get_target(int16_t * const p_degrees);
+heater_error_t heater_get_target(uint16_t * const p_degrees);
 
 //! @brief Start the heater control
 heater_error_t heater_start(void);
@@ -116,6 +116,7 @@ heater_error_t heater_deinit(void);
 //! @brief Query whether the heater is running
 bool heater_is_running(void);
 
+void heater_emergency_stop(void);
 #ifdef __cplusplus
 }
 #endif // #ifdef __cplusplus

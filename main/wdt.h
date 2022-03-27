@@ -1,20 +1,20 @@
 /*!
  *******************************************************************************
- * @file state_machine.h
+ * @file wdt.h
  *
  * @brief 
  *
  * @author Raúl Gotor (raulgotor@gmail.com)
- * @date 18.09.21
+ * @date 26.03.22
  *
  * @par
- * COPYRIGHT NOTICE: (c) 2021 Raúl Gotor
+ * COPYRIGHT NOTICE: (c) 2022 Raúl Gotor
  * All rights reserved.
  *******************************************************************************
  */
 
-#ifndef STATE_MACHINE_TASK_H
-#define STATE_MACHINE_TASK_H
+#ifndef WDT_H
+#define WDT_H
 
 /*
  *******************************************************************************
@@ -42,6 +42,10 @@
  *******************************************************************************
  */
 
-bool state_machine_set_state(state_machine_state_t const state);
+bool wdt_init(uint32_t const timeout_s);
 
-#endif //STATE_MACHINE_TASK_H
+bool wdt_kick(void);
+
+bool wdt_add_task(TaskHandle_t const handle);
+
+#endif //WDT_H

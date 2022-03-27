@@ -64,8 +64,6 @@ typedef enum
 
 bool thermocouple_init(void);
 
-bool thermocouple_set_referesh_rate(thermocouple_refresh_rate_t const refresh_rate);
-
 bool thermocouple_get_temperature(thermocouple_id_t const id, int16_t * const temperature);
 
 #ifdef __cplusplus

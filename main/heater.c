@@ -24,17 +24,19 @@
 #include <stdint.h>
 #include <assert.h>
 #include <stdbool.h>
-#include <printf.h>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
 
-#include "gpio_types.h"
-#include "driver/gpio_spy.h"
+#include "driver/gpio.h"
+//#include "gpio_types.h"
+//#include "driver/gpio_spy.h"
 
+#include "wdt.h"
 #include "thermocouple.h"
 #include "heater.h"
+#include "panic.h"
 
 /*
  *******************************************************************************
@@ -51,6 +53,8 @@
 #else
 #define FOREVER 1
 #endif
+
+#define HEATER_ACTIVE_HIGH_GPIO_PIN              (32)
 
 /*
  *******************************************************************************
@@ -100,14 +104,14 @@ static bool m_is_initialized = false;
 //! @brief Whether heater control is activeor not
 static bool m_heater_running = false;
 
-//! @brief Current heater target in degrees celsius
-static int16_t m_heater_target = 0;
-
 //! @brief Maximum allowed heater target in degrees celsius
 static int16_t m_target_max_degrees = 270;
 
 //! @brief Minimum allowed heater target in degrees celsius
 static int16_t m_target_min_degrees = 0;
+
+//! @brief Current heater target in degrees celsius
+static uint16_t m_target_temperature = 0;
 
 //! @brief Heater task handle
 static TaskHandle_t heater_task_h = NULL;
@@ -141,62 +145,55 @@ static heater_temp_getter_t m_pf_temperature_getter = NULL;
  */
 heater_error_t heater_init(heater_temp_getter_t const p_f_temp_getter)
 {
-        heater_error_t success = HEATER_ERROR_SUCCESS;
-        gpio_config_t io_config = {};
-        esp_err_t esp_success;
-        int result;
-
-        //TODO configure hardware!
+        heater_error_t result = HEATER_ERROR_SUCCESS;
+        BaseType_t task_result;
+        bool success;
 
         if (m_is_initialized) {
-                success = HEATER_ERROR_NOT_INITIALIZED;
+                result = HEATER_ERROR_GENERAL_ERROR;
         } else if (NULL == p_f_temp_getter) {
-                success = HEATER_ERROR_BAD_PARAMETER;
+                result = HEATER_ERROR_BAD_PARAMETER;
         } else {
-                m_heater_queue_h = xQueueCreate(3, sizeof(heater_msg_t *));
-
-                if (NULL == m_heater_queue_h) {
-                        success = HEATER_ERROR_GENERAL_ERROR;
-                }
-        }
-
-        if (HEATER_ERROR_SUCCESS == success) {
-                io_config.mode = GPIO_MODE_OUTPUT;
-                io_config.pull_down_en = GPIO_PULLDOWN_ENABLE;
-                io_config.pin_bit_mask = HEATER_ACTIVE_HIGH_GPIO_PIN;
-
-                esp_success = gpio_config(&io_config);
-
-                if (ESP_OK != esp_success) {
-                        success = HEATER_ERROR_GENERAL_ERROR;
-                }
-        }
-
-        if (HEATER_ERROR_SUCCESS == success) {
-
-                m_heater_target = 0;
+                m_target_temperature = 0;
                 m_heater_running = false;
                 m_pf_temperature_getter = p_f_temp_getter;
 
-                result = xTaskCreate(
+                m_heater_queue_h = xQueueCreate(3, sizeof(heater_msg_t *));
+
+                if (NULL == m_heater_queue_h) {
+                        result = HEATER_ERROR_GENERAL_ERROR;
+                }
+        }
+
+        if (HEATER_ERROR_SUCCESS == result) {
+
+                task_result = xTaskCreate(
                                 heater_task,
                                 "heater_task",
-                                configMINIMAL_STACK_SIZE,
+                                configMINIMAL_STACK_SIZE * 4,
                                 NULL,
                                 1,
                                 &heater_task_h);
 
-                if (pdPASS != result) {
-                        success = HEATER_ERROR_GENERAL_ERROR;
+                if (pdPASS != task_result) {
+                        result = HEATER_ERROR_GENERAL_ERROR;
                 }
         }
 
-        if (HEATER_ERROR_SUCCESS == success) {
 
+        if (HEATER_ERROR_SUCCESS == result) {
+                success = wdt_add_task(heater_task_h);
+
+                if (!success) {
+                        result = HEATER_ERROR_GENERAL_ERROR;
+                }
+        }
+
+        if (HEATER_ERROR_SUCCESS == result) {
                 m_is_initialized = true;
         }
 
-        return success;
+        return result;
 }
 
 /*!
@@ -213,7 +210,7 @@ heater_error_t heater_init(heater_temp_getter_t const p_f_temp_getter)
  * @retval              HEATER_ERROR_BAD_PARAMETER
  *                                          Target was outside the allowed limits
  */
-heater_error_t heater_set_target(int16_t const degrees)
+heater_error_t heater_set_target(uint16_t const degrees)
 {
         heater_error_t success = HEATER_ERROR_SUCCESS;
 
@@ -225,7 +222,7 @@ heater_error_t heater_set_target(int16_t const degrees)
         }
         
         if (HEATER_ERROR_SUCCESS == success) {
-                m_heater_target = degrees;
+                m_target_temperature = degrees;
         }
         
         return success;
@@ -245,7 +242,7 @@ heater_error_t heater_set_target(int16_t const degrees)
  * @retval              HEATER_ERROR_BAD_PARAMETER
  *                                          Pointer was null
  */
-heater_error_t heater_get_target(int16_t * const p_degrees)
+heater_error_t heater_get_target(uint16_t * const p_degrees)
 {
         heater_error_t success = HEATER_ERROR_SUCCESS;
         
@@ -254,7 +251,8 @@ heater_error_t heater_get_target(int16_t * const p_degrees)
         } else if (NULL == p_degrees) {
                 success = HEATER_ERROR_BAD_PARAMETER;
         } else {
-                *p_degrees = m_heater_target;
+
+                *p_degrees = m_target_temperature;
         }
         
         return success;
@@ -283,7 +281,7 @@ heater_error_t heater_start(void)
                 success = HEATER_ERROR_NOT_INITIALIZED;
         } else {
 
-                message.target = m_heater_target;
+                message.target = m_target_temperature;
                 message.heater_control_active = true;
 
                 success = heater_send_msg(message);
@@ -314,13 +312,19 @@ heater_error_t heater_start(void)
         if (!m_is_initialized) {
                 success = HEATER_ERROR_NOT_INITIALIZED;
         } else {
-                message.target = m_heater_target;
+                message.target = m_target_temperature;
                 message.heater_control_active = false;
 
                 success = heater_send_msg(message);
         }
 
         return success;
+}
+
+void heater_emergency_stop(void)
+{
+        m_heater_running = false;
+        heater_power_off();
 }
 
 /*!
@@ -346,9 +350,11 @@ heater_error_t heater_deinit(void)
         if (!m_is_initialized) {
                 success = HEATER_ERROR_NOT_INITIALIZED;
         } else {
-                m_heater_target = 0;
+
+                m_target_temperature = 0;
                 m_heater_running = false;
                 m_is_initialized = false;
+
                 if (NULL != m_heater_queue_h) {
                         vQueueDelete(m_heater_queue_h);
                 }
@@ -356,7 +362,9 @@ heater_error_t heater_deinit(void)
                 if (NULL != heater_task_h) {
                         vTaskDelete(heater_task_h);
                 }
+                heater_power_off();
                 heater_task_h = NULL;
+                m_is_initialized = false;
         }
 
         return success;
@@ -448,7 +456,6 @@ static heater_error_t heater_send_msg(heater_msg_t const message)
 
                         vPortFree(p_message);
                         p_message = NULL;
-                        assert(0);
                 }
         }
 
@@ -471,20 +478,18 @@ static heater_error_t heater_send_msg(heater_msg_t const message)
 static void heater_task(void * pvParameters)
 {
         heater_msg_t * p_in_message = NULL;
-        int16_t temperature = 0;
+        uint16_t temperature = 0;
         BaseType_t result;
-        bool success;
+        bool success = true;
 
         (void)pvParameters;
 
         do {
-                result = xQueueReceive(m_heater_queue_h,
-                                       &p_in_message,
-                                       pdMS_TO_TICKS(100));
+                result = xQueueReceive(m_heater_queue_h, &p_in_message, pdMS_TO_TICKS(100));
 
                 if ((pdTRUE == result) && (NULL != p_in_message)) {
                         m_heater_running = p_in_message->heater_control_active;
-                        m_heater_target = p_in_message->target;
+                        m_target_temperature = p_in_message->target;
 
                         if (!m_heater_running) {
                                 heater_power_off();
@@ -500,19 +505,28 @@ static void heater_task(void * pvParameters)
                                         THERMOCOUPLE_ID_0,
                                         &temperature);
 
-                        if (!success) {
-                                heater_power_off();
-                                assert(0);
+                        if (success) {
+                                if (m_target_temperature <= temperature) {
+                                        heater_power_off();
+                                } else {
+                                        heater_power_on();
+                                }
                         }
+                }
 
-                        if (m_heater_target < temperature) {
-                                heater_power_off();
-                        } else {
-                                heater_power_on();
-                        }
+                if (m_target_temperature < temperature) {
+                        heater_power_off();
+                } else {
+                        heater_power_on();
+                }
+
+                if ((!success) || (!wdt_kick())) {
+                        // Code style exception for readability
+                        break;
                 }
 
         // Will run forever in production, but only once in unit testing
         } while (FOREVER);
 
+        panic("General failure at heater_task ", __FILENAME__, __LINE__);
 }
