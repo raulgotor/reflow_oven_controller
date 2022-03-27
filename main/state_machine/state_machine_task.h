@@ -13,10 +13,6 @@
  *******************************************************************************
  */
 
-//
-// Created by Raúl Gotor on 18.09.21.
-//
-
 #ifndef STATE_MACHINE_TASK_H
 #define STATE_MACHINE_TASK_H
 
