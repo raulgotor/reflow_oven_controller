@@ -117,6 +117,7 @@ bool state_machine_set_state(state_machine_state_t const state)
 
 void state_machine_task(void * pvParameter)
 {
+        // Don't start processing states until everything is set and running
         xTaskNotifyWait(0, 0, NULL, portMAX_DELAY);
 
         for (;;) {

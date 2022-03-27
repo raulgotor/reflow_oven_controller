@@ -42,7 +42,8 @@ static spi_device_handle_t m_max6675_spi;
  **********************/
 
 void spi_init(void) {
-        esp_err_t ret;
+        esp_err_t esp_result;
+        bool success;
         spi_bus_config_t buscfg = {
                         .miso_io_num = TP_SPI_MISO,
                         .mosi_io_num = TP_SPI_MOSI,
@@ -70,15 +71,24 @@ void spi_init(void) {
         };
 
         //Initialize the SPI bus
-        ret = spi_bus_initialize(HSPI_HOST, &buscfg, 2);
-        ESP_ERROR_CHECK(ret);
+        esp_result = spi_bus_initialize(HSPI_HOST, &buscfg, 2);
 
-        ret = spi_bus_add_device(HSPI_HOST, &max6675_cfg, &m_max6675_spi);
-        ESP_ERROR_CHECK(ret);
+        success = (ESP_OK == esp_result);
+
+        if (success) {
+                esp_result = spi_bus_add_device(
+                                HSPI_HOST,
+                                &max6675_cfg,
+                                &m_max6675_spi);
+
+                success = (ESP_OK == esp_result);
+        }
 
         //Attach the LCD to the SPI bus
-        ret=spi_bus_add_device(HSPI_HOST, &tp_cfg, &m_touch_panel_spi);
-        assert(ret==ESP_OK);
+        esp_result = spi_bus_add_device(HSPI_HOST, &tp_cfg, &m_touch_panel_spi);
+
+        //TODO change signature to have a return here:
+        assert(esp_result==ESP_OK);
 }
 
 void tp_spi_init(void)
@@ -144,8 +154,6 @@ bool max6675_spi_xchg(uint8_t const * const rx_buffer, size_t const size)
 
         bool success = (NULL != rx_buffer) && (0 != size);
         esp_err_t esp_result;
-
-
 
         if (success) {
                 esp_result = spi_device_acquire_bus(m_max6675_spi, portMAX_DELAY);

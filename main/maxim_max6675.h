@@ -4,7 +4,7 @@
  *
  * @brief 
  *
- * @author Raúl Gotor (raulgotor@midge.com)
+ * @author Raúl Gotor (raulgotor@gmail.com)
  * @date 27.02.22
  *
  * @par
@@ -46,7 +46,7 @@ typedef enum
  *
  * Function should write the specified number of bytes in the provided buffer
  *
- * @param[in]           p_rx_buffer         Pointer to a buffer where to read
+ * @param[out]          p_rx_buffer         Pointer to a buffer where to read
  *                                          the data to
  * @param[in]           size                Number of bytes to read
  *
@@ -77,7 +77,7 @@ max6675_error_t max6675_deinit(void);
 max6675_error_t max6675_is_sensor_connected(bool * const p_connected);
 
 //! @brief Read sensor temperature
-max6675_error_t max6675_read_temperature(int16_t * const p_temperature);
+max6675_error_t max6675_read_temperature(uint16_t * const p_temperature);
 
 
 

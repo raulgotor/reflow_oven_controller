@@ -109,8 +109,7 @@ void gui_ctrls_main_refresh(void)
                 meter_value_max = (int16_t)reflow_profile.reflow_temperature;
                 profile_name = reflow_profile.name;
 
-                // TODO: round
-                snprintf(temperature_str, 9, "%dº", temperature / 100);
+                snprintf(temperature_str, 9, "%dº", temperature);
                 lv_label_set_text(p_temp_label, temperature_str);
                 lv_label_set_text(p_profile_label, profile_name);
                 lv_lmeter_set_value(p_lmeter, temperature);
@@ -155,9 +154,9 @@ void gui_ctrls_main_button_event_cb(lv_obj_t * p_object, lv_event_t event)
                         return;
                 }
 
-                state_machine_send_event(STATE_MACHINE_EVENT_TYPE_ACTION,
-                                         state_machine_event_data,
-                                         portMAX_DELAY);
+                (void)state_machine_send_event(STATE_MACHINE_EVENT_TYPE_ACTION,
+                                               state_machine_event_data,
+                                               portMAX_DELAY);
         }
 }
 

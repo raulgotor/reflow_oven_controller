@@ -43,6 +43,7 @@
 #include "state_machine/state_machine.h"
 #include "gui/gui.h"
 #include "thermocouple.h"
+#include "wdt.h"
 #include "reflow_timer.h"
 
 /*
@@ -51,7 +52,7 @@
  *******************************************************************************
  */
 
-
+#define WDT_TIMEOUT_S                       (3)
 /*
  *******************************************************************************
  * Data types                                                                  *
@@ -108,7 +109,9 @@ void app_main()
         // @note: failing to initialize hardware will assert
         hardware_init();
 
-        success = display_init();
+        success = wdt_init(WDT_TIMEOUT_S);
+
+        success = success && display_init();
 
         success = success && reflow_timer_init();
 
@@ -118,9 +121,9 @@ void app_main()
 
         success = success && state_machine_init();
 
-        success = success && (HEATER_ERROR_SUCCESS == heater_init());
-
         success = success && thermocouple_init();
+
+        success = success && (HEATER_ERROR_SUCCESS == heater_init());
 
         if (!success) {
                 assert(0);
@@ -157,6 +160,9 @@ static void hardware_init(void)
 
         gpio_set_direction(17, GPIO_MODE_OUTPUT);
         gpio_set_level(17, 1);
+
+        gpio_set_direction(32, GPIO_MODE_OUTPUT);
+        gpio_set_level(32, 0);
 
         disp_spi_init();
         ili9341_init();
