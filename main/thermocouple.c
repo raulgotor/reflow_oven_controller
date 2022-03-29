@@ -45,6 +45,7 @@
  *******************************************************************************
  */
 
+//! @brief Number of thermocouples available
 #define THERMOCOUPLE_COUNT                              1
 
 /*
@@ -65,8 +66,10 @@
  *******************************************************************************
  */
 
+//! @brief Update temperature value
 static bool thermocouple_update_temperature(void);
 
+//! @brief Thermocouple internal task
 static void thermocouple_task(void * pvParameters);
 
 /*
@@ -75,6 +78,7 @@ static void thermocouple_task(void * pvParameters);
  *******************************************************************************
  */
 
+//! @brief Thermocouple task handle
 xTaskHandle m_thermocouple_task_h = NULL;
 
 /*
@@ -83,10 +87,14 @@ xTaskHandle m_thermocouple_task_h = NULL;
  *******************************************************************************
  */
 
+//TODO: unused
+//! @brief Thermocouple refresh rate
 static thermocouple_refresh_rate_t m_refresh_rate = THERMOCOUPLE_REFRESH_RATE_1_HZ;
 
+//! @brief Whether the module is initialized or not
 static bool m_is_initialized = false;
 
+//! @brief Temperature tracking of the different thermocouples
 static int16_t m_temperature[THERMOCOUPLE_COUNT];
 
 /*
@@ -95,6 +103,19 @@ static int16_t m_temperature[THERMOCOUPLE_COUNT];
  *******************************************************************************
  */
 
+/*!
+ * @brief Initialize thermocouple module
+ *
+ * @params              -                   -
+ *
+ * @return              bool                Operation result
+ * @retval              true                Everything went well
+ * @retval              false               Module already initialized,
+ *                                          error initializing the driver,
+ *                                          not enought memory,
+ *                                          couldn't add task to WDT or
+ *                                          issues while reading temperature
+ */
 bool thermocouple_init(void)
 {
         bool success = !m_is_initialized;
@@ -134,11 +155,28 @@ bool thermocouple_init(void)
         return success;
 }
 
+/*!
+ * @brief Get thermocouple temperature
+ *
+ * Gets the temperature in degrees celsius from the internal module tracking
+ * variable.
+ *
+ * @note The function returns the temperature atomically, so it is thread safe
+ *
+ * @param               id                  Thermocouple ID to get the temp.
+ *                                          from
+ * @param               temperature         Pointer where to store the
+ *                                          retrieved temperature (degrees Celsius)
+ *
+ * @return              bool                Operation result
+ * @retval              true                Everything went well
+ * @retval              false               Invalid pointer or ID
+ */
 bool thermocouple_get_temperature(thermocouple_id_t const id,
                                   int16_t * const temperature)
 {
         bool success = true;
-
+        //TODO implement id check
         *temperature = m_temperature[id];
 
         return success;
@@ -151,6 +189,20 @@ bool thermocouple_get_temperature(thermocouple_id_t const id,
  *******************************************************************************
  */
 
+/*!
+ * @brief Update temperature value
+ *
+ * This function will read and convert the thermocouple sensor and update the
+ * internal module value accordingly. This function is meant to be called
+ * periodically.
+ *
+ * @param               -                   -
+ *
+ * @return              bool                Operation result
+ * @retval              true                Everything went well
+ * @retval              false               Reading failed or thermocouple is on
+ *                                          open-circuit
+ */
 static bool thermocouple_update_temperature(void)
 {
 #if TEMP_SIMULATION
@@ -242,6 +294,21 @@ static bool thermocouple_update_temperature(void)
  *******************************************************************************
  */
 
+/*!
+ * @brief Thermocouple internal task
+ *
+ * The task will send events to the state machine when a specific temperature
+ * target for the current state is reached. For that, the task constantly
+ * updates the temperature value and state.
+ *
+ * Once the event is sent to the state machine, it will wait for it to
+ * acknowledge before continue processing further. If the process takes long or
+ * gets blocked, the WDT will bark and a panic condition will be raised.
+ *
+ * @param               pvParameters        Not used
+ *
+ * @return              -                   -
+ */
 void thermocouple_task(void * pvParameters)
 {
         bool success;
