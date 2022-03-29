@@ -6,7 +6,9 @@ file(GLOB SOURCES
         ${SRC_DIRECTORIES}/hal/*.c
         )
 include_directories(
-        ${SRC_DIRECTORIES}
+        ${SRC_DIRECTORIES}/driver/
+        ${SRC_DIRECTORIES}/freertos/
+        ${SRC_DIRECTORIES}/hal/
 
         ${PRODUCTION_DIR}
 
@@ -21,6 +23,8 @@ include_directories(
         "${PROJECT_SOURCE_DIR}/cmake-build-production-xtensa/config"
 
 )
+
+message("Sources" ${SOURCES})
 
 add_library(mocks ${SOURCES})
 target_include_directories(mocks PUBLIC ${CMAKE_CURRENT_LIST_DIR})

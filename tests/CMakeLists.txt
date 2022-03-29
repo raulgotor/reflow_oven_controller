@@ -7,6 +7,11 @@ set(SRC_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR})
 set(MOCKS_DIR ${TESTS_DIR}/mocks)
 set(IDF_COMPONENTS_PATH $ENV{IDF_PATH}/components)
 
+set(CMAKE_C_COMPILER "gcc")
+set(CMAKE_CXX_COMPILER "g++")
+set(CMAKE_CXX_FLAGS "-mlong-calls")
+set(CMAKE_C_FLAGS "-mlong-calls")
+
 message("Current dir:         " ${CMAKE_CURRENT_SOURCE_DIR})
 message("Production dirs:     " ${PRODUCTION_DIR})
 message("Tests source dirs:   " ${SRC_DIRECTORIES})
@@ -33,12 +38,19 @@ file(GLOB SOURCES
         "${SRC_DIRECTORIES}/*.cpp"
         "${SRC_DIRECTORIES}/*.c"
         "${PRODUCTION_DIR}/heater.c"
+        "${PRODUCTION_DIR}/wdt.c"
+        # TODO: why need to add this here and not working with "add_subdirectory(${MOCKS_DIR})"?
+        "${SRC_DIRECTORIES}/mocks/driver/*.c"
+        "${SRC_DIRECTORIES}/mocks/freertos/*.c"
+        "${SRC_DIRECTORIES}/mocks/hal/*.c"
 
         )
 
 include_directories(
         ${CPPUTEST_INCLUDE_DIRS}
         ${TESTS_DIR}/mocks/hal
+        ${TESTS_DIR}/mocks/freertos
+        ${TESTS_DIR}/mocks/driver
 
         "${IDF_COMPONENTS_PATH}/driver/include"
         "${IDF_COMPONENTS_PATH}/esp_common/include"

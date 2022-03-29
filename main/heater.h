@@ -62,7 +62,7 @@ typedef enum {
 //! @brief Heater message type
 typedef struct {
         //! @brief Desired target temperature in degrees celsius
-        int16_t target;
+        uint16_t target;
 
         //! @brief Desired heater controller state
         bool heater_control_active;

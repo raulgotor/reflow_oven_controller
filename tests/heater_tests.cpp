@@ -70,11 +70,9 @@
  *******************************************************************************
  */
 
-static int16_t const m_valid_target_degrees = 200;
+static uint16_t const m_valid_target_degrees = 200;
 
-static int16_t const m_oor_high_target_degrees = 270 + 1;
-
-static int16_t const m_oor_low_target_degrees = 0 - 1;
+static uint16_t const m_oor_high_target_degrees = 270 + 1;
 
 /*
  *******************************************************************************
@@ -120,7 +118,7 @@ TEST(heater_no_init, set_target_no_init_fails)
 TEST(heater_no_init, get_target_no_init_fails)
 {
         heater_error_t result;
-        int16_t buffer;
+        uint16_t buffer;
 
         result = heater_get_target(&buffer);
 
@@ -176,7 +174,7 @@ TEST(heater_no_init, init_succeeds)
 {
         heater_error_t result;
         uint32_t level;
-        int16_t target;
+        uint16_t target;
 
         (void)gpio_spy_get_pin_level(
                         (gpio_num_t)HEATER_ACTIVE_HIGH_GPIO_PIN, &level);
@@ -231,14 +229,14 @@ TEST_GROUP(heater_initialized)
                 gpio_spy_deinit();
         }
 
-        void check_heater_with(int16_t const target,
-                               int16_t const temperature,
+        void check_heater_with(uint16_t const target,
+                               uint16_t const temperature,
                                uint32_t const expected_level,
                                bool const expected_heater_running)
         {
                 heater_error_t success;
                 TaskFunction_t task_function;
-                int16_t target_temperature = 0;
+                uint16_t target_temperature = 0;
                 uint32_t level = 0;
 
                 task_spy_get_task_function(&task_function);
@@ -283,7 +281,7 @@ TEST(heater_initialized, get_target_null_param_fails)
 TEST(heater_initialized, set_target_valid_succeeds)
 {
         heater_error_t result;
-        int16_t retrieved_target_degrees;
+        uint16_t retrieved_target_degrees;
 
         result = heater_set_target(m_valid_target_degrees);
 
@@ -326,12 +324,7 @@ TEST(heater_initialized, start_msg_valid_succeeds)
  */
 TEST(heater_initialized, set_target_oor_fails)
 {
-        heater_error_t result_oor_low;
         heater_error_t result_oor_high;
-
-        result_oor_low = heater_set_target(m_oor_low_target_degrees);
-
-        ENUMS_EQUAL_INT(HEATER_ERROR_BAD_PARAMETER, result_oor_low);
 
         result_oor_high = heater_set_target(m_oor_high_target_degrees);
 

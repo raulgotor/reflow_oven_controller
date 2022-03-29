@@ -22,7 +22,6 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include <assert.h>
 #include <stdbool.h>
 
 #include "freertos/FreeRTOS.h"
@@ -30,8 +29,6 @@
 #include "freertos/queue.h"
 
 #include "driver/gpio.h"
-//#include "gpio_types.h"
-//#include "driver/gpio_spy.h"
 
 #include "wdt.h"
 #include "thermocouple.h"
@@ -53,8 +50,6 @@
 #else
 #define FOREVER 1
 #endif
-
-#define HEATER_ACTIVE_HIGH_GPIO_PIN              (32)
 
 /*
  *******************************************************************************
@@ -514,19 +509,11 @@ static void heater_task(void * pvParameters)
                         }
                 }
 
-                if (m_target_temperature < temperature) {
-                        heater_power_off();
-                } else {
-                        heater_power_on();
-                }
-
                 if ((!success) || (!wdt_kick())) {
                         // Code style exception for readability
-                        break;
+                        panic("General failure at heater_task ", __FILE__, __LINE__);
                 }
 
         // Will run forever in production, but only once in unit testing
         } while (FOREVER);
-
-        panic("General failure at heater_task ", __FILENAME__, __LINE__);
 }

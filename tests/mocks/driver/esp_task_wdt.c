@@ -1,11 +1,11 @@
 /*!
  *******************************************************************************
- * @file thermocouple_fake.c
+ * @file esp_task_wdt.c
  *
  * @brief 
  *
  * @author Raúl Gotor (raulgotor@gmail.com)
- * @date 20.02.22
+ * @date 28.03.22
  *
  * @par
  * COPYRIGHT NOTICE: (c) 2022 Raúl Gotor
@@ -19,11 +19,11 @@
  *******************************************************************************
  */
 
-#include "stdint.h"
-#include "stdbool.h"
-#include "stddef.h"
-
-#include "thermocouple.h"
+#include <stdint.h>
+#include "FreeRTOS.h"
+#include "task.h"
+#include "gpio_spy.h"
+#include "esp_task_wdt.h"
 
 /*
  *******************************************************************************
@@ -61,33 +61,26 @@
  *******************************************************************************
  */
 
-static int16_t m_fake_temperatures[THERMOCOUPLE_ID_COUNT] = {0};
-
 /*
  *******************************************************************************
  * Public Function Bodies                                                      *
  *******************************************************************************
  */
 
-void thermocouple_fake_set_temperature(thermocouple_id_t const id,
-                                       uint16_t const temperature)
+esp_err_t esp_task_wdt_init(uint32_t time, bool panic)
 {
-        m_fake_temperatures[id] = temperature;
+        return 0;
 }
 
-bool thermocouple_fake_get_temperature(
-                thermocouple_id_t const id,
-                uint16_t * const temperature)
+esp_err_t esp_task_wdt_reset(void)
 {
-        bool success = (NULL != temperature);
-
-        if (success) {
-                *temperature = m_fake_temperatures[id];
-        }
-
-        return temperature;
+        return 0;
 }
 
+esp_err_t esp_task_wdt_add(TaskHandle_t handle)
+{
+        return 0;
+}
 /*
  *******************************************************************************
  * Private Function Bodies                                                     *

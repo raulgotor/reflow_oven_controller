@@ -1,25 +1,20 @@
 /*!
  *******************************************************************************
- * @file thermocouple_fake.h
+ * @file esp_task_wdt.h
  *
  * @brief 
  *
  * @author Raúl Gotor (raulgotor@gmail.com)
- * @date 20.02.22
+ * @date 28.03.22
  *
  * @par
- * COPYRIGHT NOTICE: (c) 2022 Raúl
+ * COPYRIGHT NOTICE: (c) 2022 Raúl Gotor
  * All rights reserved.
  *******************************************************************************
  */
 
-#ifndef THERMOCOUPLE_FAKE_H
-#define THERMOCOUPLE_FAKE_H
-
-#ifdef __cplusplus
-extern "C"
-{
-#endif // #ifdef __cplusplus
+#ifndef ESP_TASK_WDT_H
+#define ESP_TASK_WDT_H
 
 /*
  *******************************************************************************
@@ -27,6 +22,7 @@ extern "C"
  *******************************************************************************
  */
 
+#define ESP_OK 0
 
 /*
  *******************************************************************************
@@ -34,12 +30,13 @@ extern "C"
  *******************************************************************************
  */
 
+typedef int esp_err_t;
+
 /*
  *******************************************************************************
  * Public Constants                                                            *
  *******************************************************************************
  */
-
 
 /*
  *******************************************************************************
@@ -47,15 +44,10 @@ extern "C"
  *******************************************************************************
  */
 
-void thermocouple_fake_set_temperature(thermocouple_id_t const id,
-                                       uint16_t const temperature);
+esp_err_t esp_task_wdt_init(uint32_t time, bool panic);
 
-bool thermocouple_fake_get_temperature(
-                thermocouple_id_t const id,
-                uint16_t * const temperature);
+esp_err_t esp_task_wdt_reset(void);
 
-#ifdef __cplusplus
-}
-#endif // #ifdef __cplusplus
+esp_err_t esp_task_wdt_add(TaskHandle_t handle);
 
-#endif //THERMOCOUPLE_FAKE_H
+#endif //ESP_TASK_WDT_H
