@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <driver/spi_master.h>
+#include "configuration.h"
 #include "esp_system.h"
 #include "esp_freertos_hooks.h"
 #include "freertos/FreeRTOS.h"
@@ -34,6 +35,7 @@
 #include "nvs_flash.h"
 #include "disp_spi.h"
 #include "ili9341.h"
+#include "max6675_spi.h"
 #include "tp_spi.h"
 #include "xpt2046.h"
 #include "freertos/timers.h"
@@ -52,7 +54,8 @@
  *******************************************************************************
  */
 
-#define WDT_TIMEOUT_S                       (3)
+#define WDT_TIMEOUT_S                       CONFIGURATION_WDT_TIMEOUT_S
+
 /*
  *******************************************************************************
  * Data types                                                                  *
@@ -75,7 +78,7 @@ static void IRAM_ATTR lv_tick_task(void);
 
 static void nvs_init();
 
-static void hardware_init(void);
+static bool hardware_init(void);
 
 static bool display_init(void);
 
@@ -107,9 +110,9 @@ void app_main()
         bool success = true;
 
         // @note: failing to initialize hardware will assert
-        hardware_init();
+        success = hardware_init();
 
-        success = wdt_init(WDT_TIMEOUT_S);
+        success = success && wdt_init(WDT_TIMEOUT_S);
 
         success = success && display_init();
 
@@ -155,21 +158,44 @@ static void nvs_init()
         ESP_ERROR_CHECK(result);
 }
 
-static void hardware_init(void)
+static bool hardware_init(void)
 {
 
-        gpio_set_direction(17, GPIO_MODE_OUTPUT);
-        gpio_set_level(17, 1);
+        spi_bus_config_t const buscfg = {
+                        .miso_io_num = TP_SPI_MISO,
+                        .mosi_io_num = TP_SPI_MOSI,
+                        .sclk_io_num = TP_SPI_CLK,
+                        .quadwp_io_num = -1,
+                        .quadhd_io_num = -1,
+                        .max_transfer_sz = (4 * 8)
+        };
 
-        gpio_set_direction(32, GPIO_MODE_OUTPUT);
-        gpio_set_level(32, 0);
+        bool success;
+        esp_err_t esp_result;
 
-        disp_spi_init();
-        ili9341_init();
-        spi_init();
-        xpt2046_init();
-        nvs_init();
+        esp_result = spi_bus_initialize(HSPI_HOST, &buscfg, 2);
 
+        success = (ESP_OK == esp_result);
+
+        if (success) {
+                disp_spi_init();
+                tp_spi_init();
+                success = max6675_spi_init();
+        }
+
+        if (success) {
+                gpio_set_direction(17, GPIO_MODE_OUTPUT);
+                gpio_set_level(17, 1);
+
+                gpio_set_direction(32, GPIO_MODE_OUTPUT);
+                gpio_set_level(32, 0);
+
+                ili9341_init();
+                xpt2046_init();
+                nvs_init();
+        }
+
+        return success;
 }
 
 static bool display_init(void)

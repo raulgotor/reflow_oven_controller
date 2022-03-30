@@ -94,12 +94,12 @@ void gui_ctrls_main_refresh(void)
 {
         char temperature_str[10];
         char const * profile_name;
-        int16_t temperature;
+        uint16_t temperature;
         bool success;
         int16_t meter_value_max;
         reflow_profile_t reflow_profile;
 
-        success = thermocouple_get_temperature(0, &temperature);
+        success = thermocouple_get_avg_temperature(&temperature);
 
         if (success) {
                 success = reflow_profile_get_current(&reflow_profile);

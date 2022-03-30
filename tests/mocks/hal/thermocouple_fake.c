@@ -61,7 +61,7 @@
  *******************************************************************************
  */
 
-static int16_t m_fake_temperatures[THERMOCOUPLE_ID_COUNT] = {0};
+static uint16_t m_fake_temperatures = 0;
 
 /*
  *******************************************************************************
@@ -69,20 +69,17 @@ static int16_t m_fake_temperatures[THERMOCOUPLE_ID_COUNT] = {0};
  *******************************************************************************
  */
 
-void thermocouple_fake_set_temperature(thermocouple_id_t const id,
-                                       uint16_t const temperature)
+void thermocouple_fake_set_temperature(uint16_t const temperature)
 {
-        m_fake_temperatures[id] = temperature;
+        m_fake_temperatures = temperature;
 }
 
-bool thermocouple_fake_get_temperature(
-                thermocouple_id_t const id,
-                uint16_t * const temperature)
+bool thermocouple_fake_get_temperature(uint16_t * const temperature)
 {
         bool success = (NULL != temperature);
 
         if (success) {
-                *temperature = m_fake_temperatures[id];
+                *temperature = m_fake_temperatures;
         }
 
         return temperature;

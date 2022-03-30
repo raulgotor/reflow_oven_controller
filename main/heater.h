@@ -74,13 +74,11 @@ typedef struct {
  * Function pointer to a function capable of returning the actual temperature
  * of a specified probe
  *
- * @param[in]           id                  ID of the probe to query
- *
  * @param[out]          p_temp              Pointer where to save the temperature
  *
  * @return              Bool                Operation result
  */
-typedef bool (*heater_temp_getter_t)(size_t const id, uint16_t * const p_temp);
+typedef bool (*heater_temp_getter_t)(uint16_t * const p_temp);
 
 /*
  *******************************************************************************

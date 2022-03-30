@@ -242,7 +242,6 @@ TEST_GROUP(heater_initialized)
                 task_spy_get_task_function(&task_function);
 
                 thermocouple_fake_set_temperature(
-                                THERMOCOUPLE_ID_0,
                                 temperature);
 
                 success = heater_set_target(target);

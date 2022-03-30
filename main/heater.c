@@ -497,7 +497,6 @@ static void heater_task(void * pvParameters)
                 if (m_heater_running) {
 
                         success = m_pf_temperature_getter(
-                                        THERMOCOUPLE_ID_0,
                                         &temperature);
 
                         if (success) {
