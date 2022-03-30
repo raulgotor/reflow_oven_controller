@@ -300,7 +300,7 @@ static heater_error_t heater_send_msg(heater_msg_t const message)
 void heater_task(void * pvParameters)
 {
         heater_msg_t * p_in_message = NULL;
-        int16_t temperature;
+        uint16_t temperature;
         BaseType_t result;
         bool success = true;
 
@@ -320,8 +320,7 @@ void heater_task(void * pvParameters)
                 }
 
                 if (m_heater_running) {
-                        success = thermocouple_get_temperature(
-                                        THERMOCOUPLE_ID_0,
+                        success = thermocouple_get_avg_temperature(
                                         &temperature);
 
                         if (success) {

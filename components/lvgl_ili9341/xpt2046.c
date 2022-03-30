@@ -9,6 +9,7 @@
 #include "xpt2046.h"
 #include "esp_system.h"
 #include "driver/gpio.h"
+#include "driver/spi_master.h"
 #include "tp_spi.h"
 #include <stddef.h>
 
