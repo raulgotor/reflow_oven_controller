@@ -24,7 +24,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include "driver/spi_master.h"
-#include <tp_spi.h>
+#include "max6675_spi.h"
 #include <esp_log.h>
 
 #include "state_machine/states/state_machine_states.h"
@@ -43,7 +43,7 @@
  */
 
 //! @brief Number of thermocouples available
-#define THERMOCOUPLE_COUNT                  THERMOCOUPLE_ON_BOARD_COUNT
+#define THERMOCOUPLE_COUNT                  CONFIGURATION_THERMOCOUPLE_COUNT
 
 /*
  *******************************************************************************
@@ -96,10 +96,10 @@ static max6675_handle_t m_max_6675_handles[THERMOCOUPLE_COUNT];
 //! @brief Collection of transfer functions for each thermocouple instance
 static pf_read_func_t max6675_spi_xchg[] =
                 {
-                                max6675_id0_spi_xchg,
-                                max6675_id1_spi_xchg,
-                                max6675_id2_spi_xchg,
-                                max6675_id3_spi_xchg,
+                                max6675_spi_id0_xchg,
+                                max6675_spi_id1_xchg,
+                                max6675_spi_id2_xchg,
+                                max6675_spi_id3_xchg,
                 };
 
 /*

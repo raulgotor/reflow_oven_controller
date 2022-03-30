@@ -34,17 +34,8 @@ extern "C" {
 /**********************
  * GLOBAL PROTOTYPES
  **********************/
-void spi_init(void);
 void tp_spi_init(void);
 uint8_t tp_spi_xchg(uint8_t data_send);
-bool max6675_generic_spi_xchg(uint8_t const * const rx_buffer,
-                              size_t const size,
-                              spi_device_handle_t const handle);
-
-bool max6675_id0_spi_xchg(uint8_t const * const rx_buffer, size_t const size);
-bool max6675_id1_spi_xchg(uint8_t const * const rx_buffer, size_t const size);
-bool max6675_id2_spi_xchg(uint8_t const * const rx_buffer, size_t const size);
-bool max6675_id3_spi_xchg(uint8_t const * const rx_buffer, size_t const size);
 
 /**********************
  *      MACROS
