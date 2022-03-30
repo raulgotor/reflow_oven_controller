@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 set(CMAKE_C_STANDARD 99)
 
-set(CMAKE_BUILD_TYPE test)
+set(CMAKE_BUILD_TYPE production)
 message("Building ${CMAKE_BUILD_TYPE}")
 if(CMAKE_BUILD_TYPE STREQUAL production)
 

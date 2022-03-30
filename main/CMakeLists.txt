@@ -6,4 +6,4 @@ idf_component_register(SRCS ${SOURCES}
 
 target_compile_definitions(${COMPONENT_LIB} PRIVATE LV_CONF_INCLUDE_SIMPLE=1)
 
-add_library(main ${SOURCES})
+#removed add_library(main ${SOURCES})

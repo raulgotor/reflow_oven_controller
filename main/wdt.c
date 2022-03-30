@@ -21,7 +21,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <FreeRTOS.h>
+#include "freertos/FreeRTOS.h"
 #include <esp_task_wdt.h>
 #include "wdt.h"
 

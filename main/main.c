@@ -126,7 +126,7 @@ void app_main()
 
         success = success && thermocouple_init();
 
-        success = success && (HEATER_ERROR_SUCCESS == heater_init(thermocouple_get_temperature));
+        success = success && (HEATER_ERROR_SUCCESS == heater_init(thermocouple_get_avg_temperature));
 
         if (!success) {
                 assert(0);
