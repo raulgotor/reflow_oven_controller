@@ -1,25 +1,27 @@
 /*!
  *******************************************************************************
- * @file thermocouple.h
+ * @file gpio.h
  *
  * @brief 
  *
  * @author Raúl Gotor (raulgotor@gmail.com)
- * @date 18.09.21
+ * @date 17.02.22
  *
  * @par
- * COPYRIGHT NOTICE: (c) 2021 Raúl Gotor
+ * COPYRIGHT NOTICE: (c) 2022 Raúl Gotor
  * All rights reserved.
  *******************************************************************************
  */
 
-#ifndef THERMOCOUPLE_H
-#define THERMOCOUPLE_H
+#ifndef GPIO_SPY_H
+#define GPIO_SPY_H
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif // #ifdef __cplusplus
+
+#include "driver/gpio.h"
 
 /*
  *******************************************************************************
@@ -34,27 +36,7 @@ extern "C"
  *******************************************************************************
  */
 
-/*!
- *  @brief Different refresh rates for thermocouple readouts at different states
- *
- *  @note While the enum name is in herz, the hold value is in milliseconds to
- *        wait so it can be conveniently passed to `vTaskDelay()`
- */
-
-typedef enum {
-        THERMOCOUPLE_REFRESH_RATE_1_HZ = 1000,
-        THERMOCOUPLE_REFRESH_RATE_4_HZ = 250,
-        THERMOCOUPLE_REFRESH_RATE_COUNT
-} thermocouple_refresh_rate_t;
-
-//! @brief ID of the different thermocouples
-typedef enum {
-        THERMOCOUPLE_ID_0 = 0,
-        THERMOCOUPLE_ID_1,
-        THERMOCOUPLE_ID_2,
-        THERMOCOUPLE_ID_3,
-        THERMOCOUPLE_ID_COUNT
-} thermocouple_id_t;
+typedef int esp_err_t;
 
 /*
  *******************************************************************************
@@ -69,17 +51,16 @@ typedef enum {
  *******************************************************************************
  */
 
-//! @brief Initialize thermocouple module
-bool thermocouple_init(void);
+esp_err_t gpio_spy_get_pin_level(gpio_num_t gpio_num, uint32_t *level);
 
-//! @brief Get thermocouple temperature
-bool thermocouple_get_temperature(thermocouple_id_t const id,
-                                  uint16_t * const p_temperature);
+esp_err_t gpio_set_level(gpio_num_t a, uint32_t b);
 
-bool thermocouple_get_avg_temperature(uint16_t * const p_avg_temperature);
+void gpio_spy_init(void);
+
+void gpio_spy_deinit(void);
 
 #ifdef __cplusplus
 }
 #endif // #ifdef __cplusplus
 
-#endif //THERMOCOUPLE_H
+#endif //GPIO_SPY_H

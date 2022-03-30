@@ -1,11 +1,11 @@
 /*!
  *******************************************************************************
- * @file wdt.c
+ * @file task.c
  *
  * @brief 
  *
  * @author Raúl Gotor (raulgotor@gmail.com)
- * @date 26.03.22
+ * @date 17.02.22
  *
  * @par
  * COPYRIGHT NOTICE: (c) 2022 Raúl Gotor
@@ -22,8 +22,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "freertos/FreeRTOS.h"
-#include <esp_task_wdt.h>
-#include "wdt.h"
+#include "freertos/task.h"
 
 /*
  *******************************************************************************
@@ -61,49 +60,53 @@
  *******************************************************************************
  */
 
+static TaskHandle_t m_singe_handle ;
+
+static TaskFunction_t m_task_function = NULL;
+
 /*
  *******************************************************************************
  * Public Function Bodies                                                      *
  *******************************************************************************
  */
 
-/*!
- * @brief Initialize the WDT
- *
- * The WDT will cause the system to panic if not kicked in time
- *
- * @warning esp_task_wdt_init() must only be called after the scheduler started
- *
- * @param               timeout_s           Timeout in seconds for the the WDT
- *                                          to bark
- *
- * @return              bool                Operation result
- */
-bool wdt_init(uint32_t const timeout_s)
+ BaseType_t xTaskCreate(
+                TaskFunction_t pvTaskCode,
+                const char * const pcName,
+                const uint32_t usStackDepth,
+                void * const pvParameters,
+                UBaseType_t uxPriority,
+                TaskHandle_t * const pvCreatedTask)
 {
-        bool const panic = true;
-        esp_err_t esp_result;
+         bool success = pdPASS;
 
-        esp_result = esp_task_wdt_init(timeout_s, panic);
+         if (NULL == pvCreatedTask || NULL == pvTaskCode) {
+                 success = pdFALSE;
+         }
 
-        return (ESP_OK == esp_result);
+         if (pdPASS == success) {
+                 // FIXME: size of handle is not int
+                 *pvCreatedTask = malloc(sizeof(int));
+
+                 success = (NULL != *pvCreatedTask);
+         }
+
+        if (pdPASS == success) {
+                m_task_function = pvTaskCode;
+                pvTaskCode(NULL);
+        }
+
+         return success;
 }
 
-bool wdt_kick(void)
+void vTaskDelete( TaskHandle_t xTaskToDelete )
 {
-        esp_err_t esp_result;
-
-        esp_result = esp_task_wdt_reset();
-        return (ESP_OK == esp_result);
+        free(xTaskToDelete);
 }
 
-bool wdt_add_task(TaskHandle_t const handle)
+void task_spy_get_task_function(TaskFunction_t * p_task_function)
 {
-        esp_err_t esp_result;
-
-        esp_result = esp_task_wdt_add(handle);
-
-        return (ESP_OK == esp_result);
+         *p_task_function = m_task_function;
 }
 
 /*

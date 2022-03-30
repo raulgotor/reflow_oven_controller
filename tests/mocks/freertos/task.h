@@ -1,20 +1,20 @@
 /*!
  *******************************************************************************
- * @file thermocouple.h
+ * @file task.h
  *
  * @brief 
  *
- * @author Raúl Gotor (raulgotor@gmail.com)
- * @date 18.09.21
+ * @author Raúl Gotor (raulgotor@gmail..com)
+ * @date 17.02.22
  *
  * @par
- * COPYRIGHT NOTICE: (c) 2021 Raúl Gotor
+ * COPYRIGHT NOTICE: (c) 2022 Raúl Gotor
  * All rights reserved.
  *******************************************************************************
  */
 
-#ifndef THERMOCOUPLE_H
-#define THERMOCOUPLE_H
+#ifndef TASK_H
+#define TASK_H
 
 #ifdef __cplusplus
 extern "C"
@@ -34,28 +34,6 @@ extern "C"
  *******************************************************************************
  */
 
-/*!
- *  @brief Different refresh rates for thermocouple readouts at different states
- *
- *  @note While the enum name is in herz, the hold value is in milliseconds to
- *        wait so it can be conveniently passed to `vTaskDelay()`
- */
-
-typedef enum {
-        THERMOCOUPLE_REFRESH_RATE_1_HZ = 1000,
-        THERMOCOUPLE_REFRESH_RATE_4_HZ = 250,
-        THERMOCOUPLE_REFRESH_RATE_COUNT
-} thermocouple_refresh_rate_t;
-
-//! @brief ID of the different thermocouples
-typedef enum {
-        THERMOCOUPLE_ID_0 = 0,
-        THERMOCOUPLE_ID_1,
-        THERMOCOUPLE_ID_2,
-        THERMOCOUPLE_ID_3,
-        THERMOCOUPLE_ID_COUNT
-} thermocouple_id_t;
-
 /*
  *******************************************************************************
  * Public Constants                                                            *
@@ -69,17 +47,20 @@ typedef enum {
  *******************************************************************************
  */
 
-//! @brief Initialize thermocouple module
-bool thermocouple_init(void);
+BaseType_t xTaskCreate(
+                TaskFunction_t pvTaskCode,
+                const char * const pcName,
+                const uint32_t usStackDepth,
+                void * const pvParameters,
+                UBaseType_t uxPriority,
+                TaskHandle_t * const pvCreatedTask);
 
-//! @brief Get thermocouple temperature
-bool thermocouple_get_temperature(thermocouple_id_t const id,
-                                  uint16_t * const p_temperature);
+void vTaskDelete( TaskHandle_t xTaskToDelete );
 
-bool thermocouple_get_avg_temperature(uint16_t * const p_avg_temperature);
+void task_spy_get_task_function(TaskFunction_t * p_task_function);
 
 #ifdef __cplusplus
 }
 #endif // #ifdef __cplusplus
 
-#endif //THERMOCOUPLE_H
+#endif //TASK_H

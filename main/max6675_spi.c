@@ -91,13 +91,13 @@ static spi_device_interface_config_t m_max6675_interface_configs[] =
                                 {
                                                 .mode = 0,
                                                 .clock_speed_hz = 2 * 1000 * 1000,
-                                                .spics_io_num = 34, //TODO: right pinout
+                                                .spics_io_num = 4, //TODO: right pinout
                                                 .queue_size = 3,
                                 },
                                 {
                                                 .mode = 0,
                                                 .clock_speed_hz = 2 * 1000 * 1000,
-                                                .spics_io_num = 7, //TODO: right pinout
+                                                .spics_io_num = 4, //TODO: right pinout
                                                 .queue_size = 3,
                                 }
                 };

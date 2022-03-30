@@ -1,11 +1,11 @@
 /*!
  *******************************************************************************
- * @file wdt.c
+ * @file queue.c
  *
  * @brief 
  *
  * @author Raúl Gotor (raulgotor@gmail.com)
- * @date 26.03.22
+ * @date 17.02.22
  *
  * @par
  * COPYRIGHT NOTICE: (c) 2022 Raúl Gotor
@@ -20,10 +20,10 @@
  */
 
 #include <stdbool.h>
-#include <stdint.h>
+#include <stdio.h>
+#include <strings.h>
 #include "freertos/FreeRTOS.h"
-#include <esp_task_wdt.h>
-#include "wdt.h"
+#include "freertos/queue.h"
 
 /*
  *******************************************************************************
@@ -31,6 +31,9 @@
  *******************************************************************************
  */
 
+#define debug printf
+
+#define QUEUE_SPY_QUEUE_LENGTH          (100)
 /*
  *******************************************************************************
  * Data types                                                                  *
@@ -61,49 +64,96 @@
  *******************************************************************************
  */
 
+static bool m_is_queue_full = false;
+
+static UBaseType_t m_queue_item_size = 0;
+
+static uint8_t m_queue[QUEUE_SPY_QUEUE_LENGTH];
+
 /*
  *******************************************************************************
  * Public Function Bodies                                                      *
  *******************************************************************************
  */
 
-/*!
- * @brief Initialize the WDT
- *
- * The WDT will cause the system to panic if not kicked in time
- *
- * @warning esp_task_wdt_init() must only be called after the scheduler started
- *
- * @param               timeout_s           Timeout in seconds for the the WDT
- *                                          to bark
- *
- * @return              bool                Operation result
- */
-bool wdt_init(uint32_t const timeout_s)
+QueueHandle_t xQueueGenericCreate( const UBaseType_t uxQueueLength,
+                                   const UBaseType_t uxItemSize,
+                                   const uint8_t ucQueueType )
 {
-        bool const panic = true;
-        esp_err_t esp_result;
+        // FIXME: size of queue_handle_t is not int
+        QueueHandle_t handle = NULL;
 
-        esp_result = esp_task_wdt_init(timeout_s, panic);
+        if (0 == uxItemSize) {
+                handle = NULL;
+        } else {
+                m_queue_item_size = uxItemSize;
+                handle = (QueueHandle_t)malloc(sizeof(int));
+        }
 
-        return (ESP_OK == esp_result);
+        return handle;
 }
 
-bool wdt_kick(void)
+void queue_spy_queue_data(const void * p_item_to_queue)
 {
-        esp_err_t esp_result;
-
-        esp_result = esp_task_wdt_reset();
-        return (ESP_OK == esp_result);
+        debug("saving -> %p, contents -> %p\n", p_item_to_queue, *(void**)p_item_to_queue);
+        memcpy((void *)m_queue, (void const *)p_item_to_queue, m_queue_item_size);
 }
 
-bool wdt_add_task(TaskHandle_t const handle)
+BaseType_t xQueueGenericSend( QueueHandle_t xQueue,
+                              const void * const pvItemToQueue,
+                              TickType_t xTicksToWait,
+                              const BaseType_t xCopyPosition )
 {
-        esp_err_t esp_result;
+        bool success = pdTRUE;
 
-        esp_result = esp_task_wdt_add(handle);
+        if ((NULL == xQueue) || (NULL == pvItemToQueue) || (m_is_queue_full)) {
+                success = pdFALSE;
+        }
 
-        return (ESP_OK == esp_result);
+        queue_spy_queue_data(pvItemToQueue);
+
+        return success;
+}
+
+void vQueueDelete( QueueHandle_t xQueue )
+{
+
+}
+
+BaseType_t xQueueReceive( QueueHandle_t xQueue,
+                          void * const pvBuffer,
+                          TickType_t xTicksToWait )
+{
+        BaseType_t success = pdTRUE;
+
+        if (NULL == pvBuffer) {
+                success = pdFALSE;
+        } else {
+
+                debug("copy from -> %p, contents -> %p\n", m_queue, *(void**)m_queue);
+                debug("copy to -> %p, contents -> %p\n", pvBuffer, *(void**)pvBuffer);
+
+                memcpy((void *) pvBuffer, (void const *) m_queue, m_queue_item_size);
+        }
+
+        return success;
+}
+
+void queue_spy_set_queue_full(bool is_full)
+{
+        m_is_queue_full = is_full;
+}
+
+void queue_spy_create(void)
+{
+        memset((void *)m_queue, 0, QUEUE_SPY_QUEUE_LENGTH);
+        m_is_queue_full = false;
+}
+
+void queue_spy_destroy(void)
+{
+        memset((void *)m_queue, 0, QUEUE_SPY_QUEUE_LENGTH);
+        m_is_queue_full = false;
 }
 
 /*

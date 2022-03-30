@@ -1,11 +1,11 @@
 /*!
  *******************************************************************************
- * @file wdt.c
+ * @file gpio.c
  *
  * @brief 
  *
  * @author Raúl Gotor (raulgotor@gmail.com)
- * @date 26.03.22
+ * @date 17.02.22
  *
  * @par
  * COPYRIGHT NOTICE: (c) 2022 Raúl Gotor
@@ -19,12 +19,10 @@
  *******************************************************************************
  */
 
-#include <stdbool.h>
-#include <stdint.h>
-#include "freertos/FreeRTOS.h"
-#include <esp_task_wdt.h>
-#include "wdt.h"
-
+#include "driver/gpio.h"
+#include "gpio_types.h"
+#include "sdkconfig.h"
+#include "gpio_spy.h"
 /*
  *******************************************************************************
  * Private Macros                                                              *
@@ -61,51 +59,59 @@
  *******************************************************************************
  */
 
+static uint32_t m_pin_levels[GPIO_NUM_MAX];
+
+static bool m_is_spy_initialized = false;
+
 /*
  *******************************************************************************
  * Public Function Bodies                                                      *
  *******************************************************************************
  */
 
-/*!
- * @brief Initialize the WDT
- *
- * The WDT will cause the system to panic if not kicked in time
- *
- * @warning esp_task_wdt_init() must only be called after the scheduler started
- *
- * @param               timeout_s           Timeout in seconds for the the WDT
- *                                          to bark
- *
- * @return              bool                Operation result
- */
-bool wdt_init(uint32_t const timeout_s)
+esp_err_t gpio_set_level(gpio_num_t gpio_num, uint32_t level)
 {
-        bool const panic = true;
-        esp_err_t esp_result;
+        m_pin_levels[gpio_num] = level;
 
-        esp_result = esp_task_wdt_init(timeout_s, panic);
-
-        return (ESP_OK == esp_result);
+        return ESP_OK;
 }
 
-bool wdt_kick(void)
+esp_err_t gpio_config(const gpio_config_t *pGPIOConfig)
 {
-        esp_err_t esp_result;
-
-        esp_result = esp_task_wdt_reset();
-        return (ESP_OK == esp_result);
+        return ESP_OK;
 }
 
-bool wdt_add_task(TaskHandle_t const handle)
+esp_err_t gpio_spy_get_pin_level(gpio_num_t gpio_num, uint32_t *level)
 {
-        esp_err_t esp_result;
 
-        esp_result = esp_task_wdt_add(handle);
+        esp_err_t result = ESP_OK;
 
-        return (ESP_OK == esp_result);
+        if (NULL == level) {
+                result = ESP_ERR_INVALID_ARG;
+        } else if (!m_is_spy_initialized) {
+                result = ESP_FAIL;
+        }
+
+        *level = m_pin_levels[gpio_num];
+
+        return result;
+
 }
 
+void gpio_spy_init(void)
+{
+        size_t i = 0;
+
+        for (i = 0; GPIO_NUM_MAX > i; ++i) {
+                m_pin_levels[i] = 0;
+        }
+
+        m_is_spy_initialized = true;
+}
+
+void gpio_spy_deinit(void) {
+        // NOP
+}
 /*
  *******************************************************************************
  * Private Function Bodies                                                     *
