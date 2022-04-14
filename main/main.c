@@ -187,8 +187,8 @@ static bool hardware_init(void)
                 gpio_set_direction(17, GPIO_MODE_OUTPUT);
                 gpio_set_level(17, 1);
 
-                gpio_set_direction(32, GPIO_MODE_OUTPUT);
-                gpio_set_level(32, 0);
+                gpio_set_direction(HEATER_ACTIVE_HIGH_GPIO_PIN, GPIO_MODE_OUTPUT);
+                gpio_set_level(HEATER_ACTIVE_HIGH_GPIO_PIN, 0);
 
                 ili9341_init();
                 xpt2046_init();

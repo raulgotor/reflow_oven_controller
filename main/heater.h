@@ -29,7 +29,7 @@ extern "C"
 
 //TODO: define which pin
 //! @brief GPIO controlling the heater
-#define HEATER_ACTIVE_HIGH_GPIO_PIN              (10)
+#define HEATER_ACTIVE_HIGH_GPIO_PIN              GPIO_NUM_33
 
 /*
  *******************************************************************************

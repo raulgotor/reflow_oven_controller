@@ -396,7 +396,7 @@ bool heater_is_running(void)
  */
 static void heater_power_on(void)
 {
-        (void)gpio_set_level(HEATER_ACTIVE_HIGH_GPIO_PIN, 1);
+        (void)gpio_set_level((gpio_num_t)HEATER_ACTIVE_HIGH_GPIO_PIN, 1);
 }
 
 /*!
@@ -408,7 +408,7 @@ static void heater_power_on(void)
  */
 static void heater_power_off(void)
 {
-        (void)gpio_set_level(HEATER_ACTIVE_HIGH_GPIO_PIN, 0);
+        (void)gpio_set_level((gpio_num_t)HEATER_ACTIVE_HIGH_GPIO_PIN, 0);
 }
 
 /*!
