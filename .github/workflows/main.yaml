@@ -19,5 +19,6 @@ jobs:
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
     - run: |
+        echo $(ls)
         cd reflow_oven_controller
         idf.py build
