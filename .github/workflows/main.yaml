@@ -10,7 +10,7 @@ jobs:
     name: Build Image
     runs-on: ubuntu-latest
     container:
-    - images: espressif/idf:v4.4
+      image: espressif/idf:v4.4
     permissions:
       issues: write
       pull-requests: write
