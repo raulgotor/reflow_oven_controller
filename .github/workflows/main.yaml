@@ -19,5 +19,6 @@ jobs:
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
     - run: |
+        echo $IDF_PATH
         echo $(ls)
         idf.py build
