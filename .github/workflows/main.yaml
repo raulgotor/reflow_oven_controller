@@ -1,0 +1,23 @@
+name: Build
+
+on: 
+  push:
+    branches:
+      - '**'
+
+jobs:
+  build:
+    name: Build Image
+    runs-on: ubuntu-latest
+    container:
+    - images: espressif/idf:v4.4
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+    - run: |
+        pushd reflow_oven_controller
+        idf.py build
