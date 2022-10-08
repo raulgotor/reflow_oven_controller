@@ -14,13 +14,12 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - run: |
-        echo $IDF_PATH
-        echo $(ls)
         . $IDF_PATH/export.sh
         idf.py build
+        echo $(ls)
     - name: Upload ERC Error Report
       uses: actions/upload-artifact@v3
       with:
         name: build_artifacts
-        path: reflow_oven_controller/build
+        path: reflow_oven_controller/reflow_oven_controller/build
   
