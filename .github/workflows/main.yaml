@@ -23,5 +23,12 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: build_artifacts
-        path: build
+        path: |
+          build/*.bin
+          build/*.elf
+          build/*.map
+          build/bootloader/*.bin
+          build/bootloader/*.elf
+          build/bootloader/*.map
+          build/partition_table/*.bin
   
