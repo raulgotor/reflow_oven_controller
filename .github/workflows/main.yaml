@@ -18,3 +18,9 @@ jobs:
         echo $(ls)
         . $IDF_PATH/export.sh
         idf.py build
+    - name: Upload ERC Error Report
+      uses: actions/upload-artifact@v3
+      with:
+        name: build_artifacts
+        path: reflow_oven_controller/build
+  
