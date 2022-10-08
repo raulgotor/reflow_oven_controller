@@ -16,4 +16,5 @@ jobs:
     - run: |
         echo $IDF_PATH
         echo $(ls)
+        . $IDF_PATH/export.sh
         idf.py build
