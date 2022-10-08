@@ -12,14 +12,16 @@ jobs:
     container:
       image: espressif/idf:v4.4
     steps:
-    - uses: actions/checkout@v2
-    - run: |
+    - name: Check out repository
+      uses: actions/checkout@v2
+    - name: Build Image
+      run: |
         . $IDF_PATH/export.sh
         idf.py build
         echo $(ls)
-    - name: Upload ERC Error Report
+    - name: Upload Artifacts
       uses: actions/upload-artifact@v3
       with:
         name: build_artifacts
-        path: reflow_oven_controller/reflow_oven_controller/build
+        path: build
   
