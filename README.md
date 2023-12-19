@@ -58,9 +58,13 @@
 
 
 <!-- ABOUT THE PROJECT -->
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fraulgotor%2Freflow_oven_controller.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fraulgotor%2Freflow_oven_controller?ref=badge_large)
+
 ## About The Project
 
 [![Product Name Screen Shot][product-screenshot]](https://example.com)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fraulgotor%2Freflow_oven_controller.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fraulgotor%2Freflow_oven_controller?ref=badge_shield)
 
 This is yet another Reflow oven controller. I wasn't fully convinced with what I
 found around the different repositories, so I created my own.
